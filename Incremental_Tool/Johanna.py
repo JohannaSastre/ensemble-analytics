@@ -828,7 +828,7 @@ elif selected == "Boxplots":
         "trigger": "item",
         "confine": True,
         "axisPointer": {
-         type: 'cross'
+         "type": "cross"
         }
     },
     "xAxis": {
@@ -857,9 +857,9 @@ elif selected == "Boxplots":
         "bottom": 100,
         "backgroundColor": "#ffffff",
     },
-    "legend": {
-        "selected": {"Boxplot": True},
-    },
+    #"legend": {
+        #"selected": {"Boxplot": True},
+    #},
     "dataZoom": [
         {"type": "inside"},
         {"type": "slider", "height": 20},
@@ -1021,7 +1021,7 @@ elif selected == "Waterfall":
         st.dataframe(box_data_project,use_container_width=True)           
         st.dataframe(box_data_incremental,use_container_width=True)           
         
-
+################################################################################Case Selection##############################################
 
 elif selected == "Case selection":
     

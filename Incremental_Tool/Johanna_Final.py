@@ -820,71 +820,59 @@ elif selected == "Boxplots":
     from streamlit_echarts import st_echarts, JsCode
     # ECharts options
     options = {
-        "title": {
-            "text": f"Boxplot of {selected_property} by {selected_category}",
-            "left": "left",
-        },
-        "tooltip": {
+    "title": {
+        "text": f"Boxplot of {selected_property} by {selected_category}",
+        "left": "left",
+    },
+    "tooltip": {
         "trigger": "item",
         "confine": True,
-                },
-        "xAxis": {
-            "type": "category",
-            "data": categories,
-            "name": selected_category,  # X-axis label
-            "nameLocation": "middle",  # Center the label
-            "nameGap": 30,  # Gap between the label and the axis
-            "axisLabel": {"formatter": "{value}"},
+        "axisPointer": {
+         "type": "cross"
+        }
+    },
+    "xAxis": {
+        "type": "category",
+        "data": categories,
+        "name": selected_category,
+        "nameLocation": "middle",
+        "nameGap": 30,
+        "axisLabel": {"formatter": "{value}"},
+    },
+    "yAxis": {
+        "type": "value",
+        "name": f"{selected_property}",
+        "nameLocation": "middle",
+        "nameGap": 50,
+        "axisLabel": {"formatter": "{value}"},
+        "splitLine": {
+            "lineStyle": {"color": "#d3d3d3", "width": 1},
         },
-        "yAxis": {
-            "type": "value",
-            "name": f"{selected_property}",  # Y-axis label
-            "nameLocation": "middle",  # Center the label
-            "nameGap": 50,  # Gap between the label and the axis
-            "axisLabel": {
-                "formatter": "{value}"
-            },
-            "splitLine": {
-                "lineStyle": {
-                    "color": "#d3d3d3",  # Light grey for major gridlines
-                    "width": 1,
-                }
-            },
-            "minorSplitLine": {
-                "show": True,
-                "lineStyle": {
-                    "color": "#e8e8e8",  # Lighter grey for minor gridlines
-                    "width": 0.5,
-                }
-            },
+        "minorSplitLine": {
+            "show": True,
+            "lineStyle": {"color": "#e8e8e8", "width": 0.5},
         },
-        "grid": {  # Properly aligned with the rest of the dictionary
-            "bottom": 100,
-            "backgroundColor": "#ffffff",  # Set background to white
-        },
-        "legend": {
-            "selected": {"Boxplot": True},
-        },
-        "dataZoom": [
-            {
-                "type": "inside",
-            },
-            {
-                "type": "slider",
-                "height": 20,
-            },
-        ],
-        "series": [
-            {
-                "name": "Boxplot",
-                "type": "boxplot",
-                "data": box_data,  # Use the prepared box_data
-                "itemStyle": {
-                    "color": "#b8c5f2",  # Boxplot color
-                },
-            }
-        ],
-    }
+    },
+    "grid": {
+        "bottom": 100,
+        "backgroundColor": "#ffffff",
+    },
+    "legend": {
+        "selected": {"Boxplot": True},
+    },
+    "dataZoom": [
+        {"type": "inside"},
+        {"type": "slider", "height": 20},
+    ],
+    "series": [
+        {
+            "name": "Boxplot",
+            "type": "boxplot",
+            "data": box_data,
+            "itemStyle": {"color": "#b8c5f2"},
+        }
+    ],
+}
 
     # Render the chart
     echarts_height = 1000
