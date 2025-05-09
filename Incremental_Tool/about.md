@@ -4,6 +4,7 @@ The Incremental Dashboard in your Streamlit app is a comprehensive visual tool f
 To visualize and quantify the difference (increment) in reservoir production metrics over time and at specific time slices — enabling better decision-making in reservoir management, forecasting, and well planning.
 
 🛠️ Key Functionalities:
+
 🔄 Case Loading and Mapping:
 Upload .pkl files for Base and Project cases.
 
