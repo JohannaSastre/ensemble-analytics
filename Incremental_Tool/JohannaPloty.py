@@ -293,23 +293,20 @@ if selected == "Extract Data":
        
            
 ########################################## Main menus
-import os
+from pathlib import Path
+
+# Point directly to the markdown file in the current directory
+ABOUT = Path("about.md")
 
 if selected == "About":
-    # Make the title bigger and bold
-    st.markdown("<h2 style='text-align: left; font-weight: bold;'>Incremental Dashboard</h2>", unsafe_allow_html=True)
-    
-    # Simplified relative path to the about file
-    about_file_path = "/about.md"
-    
-    # Check if the file exists
-    if os.path.exists(about_file_path):
-        # Read and display the content of the file with larger text
-        with open(about_file_path, "r") as file:
+    st.markdown("<h3 style='text-align: left; font-weight: bold;'>Incremental Dashboard</h3>", unsafe_allow_html=True)
+
+    try:
+        with open("about.md", "r", encoding="utf-8") as file:
             about_content = file.read()
-            st.markdown(f"<div style='font-size: 18px;'>{about_content}</div>", unsafe_allow_html=True)
-    else:
-        st.error("The 'about.txt' file is missing. Please add it to the project directory.")
+            st.markdown(about_content, unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.error("The 'about.md' file is missing. Please ensure it's in the same folder as your script.")
 
 if selected == "Upload Data":
     col1, col2, col3 = st.columns([1, 1, 1])
