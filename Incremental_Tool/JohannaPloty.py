@@ -596,21 +596,20 @@ elif selected == "Analysis":
 
     # ---- Layout
     fig.update_layout(
-        height=plot_height * 150,
-        width=1000,
+        height=plot_height * 300,  # Increase height to give vertical space
+        width=1600,  # Increase width to accommodate legends and axis text
         title=dict(
             text=f"{selected_identifier}: {selected_property}",
-            font=dict(size=30),  # Title font
+            font=dict(size=24),  # Slightly smaller title font
             x=0.0,
             xanchor='left'
         ),
-        showlegend=True,
+        showlegend=False,  # Turn off legend to avoid right margin issues (or keep only key traces)
         template="plotly_white",
-        font=dict(size=30),  # Global font size (axes, ticks, legend)
+        font=dict(size=14),  # Reduce global font size for axes and labels
         barmode='overlay',
-        # 👇 Tighter spacing settings
-        margin=dict(t=20, b=20, l=20, r=20),  # reduce default padding
-   )
+        margin=dict(t=50, b=50, l=60, r=40),  # Give more breathing room
+    )
 
     # ---- Show in Streamlit
     st.plotly_chart(fig, use_container_width=False)
