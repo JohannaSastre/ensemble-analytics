@@ -593,7 +593,7 @@ elif selected == "Analysis":
     fig.update_yaxes(title_text="Cumulative Probability", row=2, col=2, secondary_y=True)
 
     # ---- Layout
-        fig.update_layout(
+    fig.update_layout(
         height=plot_height * 400,  # Make this bigger if more traces
         width=None,  # Let Streamlit fill width dynamically
         autosize=True,
