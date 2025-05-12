@@ -921,47 +921,41 @@ elif selected == "Waterfall":
             if merge_zeros:
                 cutoff = st.number_input("Cutoff value", value=1.0)
 
-        with st.sidebar.expander("Show bars", expanded=True):
-            show_project = st.checkbox("Include Project", value=True)
-            show_other = st.checkbox("Include Other", value=merge_zeros)
-
         selected_category = st.sidebar.selectbox("Select category", options=["Regions", "Wells"])
         selected_property = st.sidebar.selectbox("Select property", props)
         selected_date = st.sidebar.select_slider("Select date", options=dates, format_func=lambda d: d.strftime("%Y-%m-%d"))
+
+        with st.sidebar.expander("Plot content"):
+            show_base = st.checkbox("Show Base", value=True)
+            show_project = st.checkbox("Show Project", value=True)
+            show_other = st.checkbox("Show Other", value=True)
+
+        # Identifiers and selection
+        identifiers = regions if selected_category == 'Regions' else wells
+
+        with st.sidebar.expander("Select identifiers to display"):
+            identifiers_selected = st.multiselect("Choose identifiers", identifiers, default=identifiers)
 
         box_data_base = pd.DataFrame()
         box_data_project = pd.DataFrame()
         box_data_incremental = pd.DataFrame()
 
-        if selected_category == 'Regions':
-            identifiers = regions
-            for region in identifiers:
-                df_base = data_dict_base['Regions'][region][selected_property].apply(pd.to_numeric, errors='coerce')
-                df_project = data_dict_project['Regions'][region][selected_property].apply(pd.to_numeric, errors='coerce')
-                df_incremental = pd.DataFrame(index=dates)
+        for name in identifiers:
+            if selected_category == 'Regions':
+                df_base = data_dict_base['Regions'][name][selected_property].apply(pd.to_numeric, errors='coerce')
+                df_project = data_dict_project['Regions'][name][selected_property].apply(pd.to_numeric, errors='coerce')
+            else:
+                df_base = data_dict_base['Wells'][name][selected_property].apply(pd.to_numeric, errors='coerce')
+                df_project = data_dict_project['Wells'][name][selected_property].apply(pd.to_numeric, errors='coerce')
 
-                for col_base in df_base.columns:
-                    col_project = dict_incremental_mapping[col_base]
-                    df_incremental[col_project + ' - ' + col_base] = df_project[col_project] - df_base[col_base]
+            df_incremental = pd.DataFrame(index=dates)
+            for col_base in df_base.columns:
+                col_project = dict_incremental_mapping[col_base]
+                df_incremental[col_project + ' - ' + col_base] = df_project[col_project] - df_base[col_base]
 
-                box_data_base[region] = df_base.loc[selected_date]
-                box_data_project[region] = df_project.loc[selected_date]
-                box_data_incremental[region] = df_incremental.loc[selected_date]
-
-        if selected_category == 'Wells':
-            identifiers = wells
-            for well in identifiers:
-                df_base = data_dict_base['Wells'][well][selected_property].apply(pd.to_numeric, errors='coerce')
-                df_project = data_dict_project['Wells'][well][selected_property].apply(pd.to_numeric, errors='coerce')
-                df_incremental = pd.DataFrame(index=dates)
-
-                for col_base in df_base.columns:
-                    col_project = dict_incremental_mapping[col_base]
-                    df_incremental[col_project + ' - ' + col_base] = df_project[col_project] - df_base[col_base]
-
-                box_data_base[well] = df_base.loc[selected_date]
-                box_data_project[well] = df_project.loc[selected_date]
-                box_data_incremental[well] = df_incremental.loc[selected_date]
+            box_data_base[name] = df_base.loc[selected_date]
+            box_data_project[name] = df_project.loc[selected_date]
+            box_data_incremental[name] = df_incremental.loc[selected_date]
 
         # Aggregate
         base = box_data_base.mean().sum()
@@ -970,32 +964,38 @@ elif selected == "Waterfall":
 
         df_temp = pd.DataFrame(index=identifiers)
         df_temp["Value"] = list(incremental)
+        df_temp = df_temp.loc[identifiers_selected]
 
-        # Build the waterfall steps
-        values = [base]
-        labels = ["Base"]
-        measures = ["absolute"]
-
+        # Waterfall logic
         if merge_zeros:
             df_main = df_temp[df_temp["Value"].abs() >= cutoff]
             df_other = df_temp[df_temp["Value"].abs() < cutoff]
-            for label, val in zip(df_main.index, df_main["Value"]):
-                labels.append(label)
-                values.append(val)
-                measures.append("relative")
-            if show_other:
-                labels.append("Other")
-                values.append(df_other["Value"].sum())
-                measures.append("relative")
         else:
-            for label, val in zip(df_temp.index, df_temp["Value"]):
-                labels.append(label)
-                values.append(val)
-                measures.append("relative")
+            df_main = df_temp
+            df_other = pd.DataFrame(columns=["Value"])
+
+        values = []
+        labels = []
+        measures = []
+
+        if show_base:
+            values.append(base)
+            labels.append("Base")
+            measures.append("absolute")
+
+        for name, row in df_main.iterrows():
+            values.append(row["Value"])
+            labels.append(name)
+            measures.append("relative")
+
+        if show_other and not df_other.empty:
+            values.append(df_other["Value"].sum())
+            labels.append("Other")
+            measures.append("relative")
 
         if show_project:
-            labels.append("Project")
             values.append(project)
+            labels.append("Project")
             measures.append("total")
 
         # Plotly Waterfall Chart
@@ -1010,11 +1010,11 @@ elif selected == "Waterfall":
         ))
 
         fig.update_layout(
-            title=f"Waterfall Chart for Mean Incremental Values: {selected_property} @ {selected_date.strftime('%Y-%m-%d')}",
+            title=f"Waterfall Chart for {selected_property} @ {selected_date.strftime('%Y-%m-%d')}",
             height=plot_height * 100,
             showlegend=False,
             template="plotly_white",
-            font=dict(size=16),
+            font=dict(size=14),
             margin=dict(t=40, b=20)
         )
 
@@ -1026,7 +1026,6 @@ elif selected == "Waterfall":
         st.dataframe(box_data_project, use_container_width=True)
         st.dataframe(box_data_incremental, use_container_width=True)
 
-     
         
 #################################################################### CASE SELECTION        #########################################
 elif selected == "Case selection":
