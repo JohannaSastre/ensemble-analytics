@@ -74,9 +74,9 @@ with st.sidebar:
     
     selected = option_menu(
         menu_title="",           # Title of the sidebar
-        options=["Upload Data", "Sales Conversions", "Boxplots","Analysis","Crossplot","Case selection","Waterfall"
+        options=["About", "Upload Data", "Sales Conversions", "Boxplots","Analysis","Crossplot","Case selection","Waterfall"
                 ],  # Menu options with emojis
-        icons=["capslock", "graph-down", "bar-chart-steps","arrows-expand-vertical","diagram-3","currency-dollar","bullseye","bounding-box","clipboard-data", "gear"],  # Optional icons from Bootstrap
+        icons=["info-circle","capslock", "graph-down", "bar-chart-steps","arrows-expand-vertical","diagram-3","currency-dollar","bullseye","bounding-box","clipboard-data", "gear"],  # Optional icons from Bootstrap
         default_index=0,                  # Default selected option
         )
 
@@ -293,6 +293,20 @@ if selected == "Extract Data":
        
            
 ########################################## Main menus
+from pathlib import Path
+
+# Point directly to the markdown file in the current directory
+ABOUT = Path("about.md")
+
+if selected == "About":
+    st.markdown("<h3 style='text-align: left; font-weight: bold;'>Incremental Dashboard</h3>", unsafe_allow_html=True)
+    try:
+        with open("about.md", "r", encoding="utf-8") as file:
+            about_content = file.read()
+            st.markdown(about_content, unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.error("The 'about.md' file is missing. Please ensure it's in the same folder as your script.")
+
 if selected == "Upload Data":
     col1, col2, col3 = st.columns([1, 1, 1])
 
@@ -339,7 +353,7 @@ if selected == "Upload Data":
             dict_incremental_mapping = st.session_state['dict_incremental_mapping']
             st.write('Base : Project')
             st.write(dict_incremental_mapping)
-       ############# Main menus
+######################################################### Main menus##############################################################################
 if selected == "Sales Conversions":
         
     data_dict_base = st.session_state['data_dict_base']
@@ -408,7 +422,10 @@ if selected == "Sales Conversions":
 
         
     st.write(data_dict_base['Metadata']['Properties'])
-    
+
+
+
+##################################################################################### ANALYSIS ############################################################################    
 elif selected == "Analysis":
 
     ########### setup widgets
@@ -497,7 +514,10 @@ elif selected == "Analysis":
     fig = make_subplots(rows=2, cols=2,
                         subplot_titles=("Base/Project Time Series", "Base/Project Histogram",
                                         "Incremental Time Series", "Incremental Histogram + S-Curve"),
-                        specs=[[{}, {}], [{}, {"secondary_y": True}]])
+                        specs=[[{}, {}], [{}, {"secondary_y": True}]],
+                            horizontal_spacing=0.02,  # default is 0.2, reduce this
+                            vertical_spacing=0.02     # default is 0.3, reduce this
+        )
 
     # ---- Bins for consistent histograms
     bins = np.histogram_bin_edges(np.concatenate([base_slice, project_slice]), bins=30)
@@ -576,9 +596,10 @@ elif selected == "Analysis":
     # ---- Layout
     fig.update_layout(
         height=plot_height * 150,
+        width=1000,
         title=dict(
             text=f"{selected_identifier}: {selected_property}",
-            font=dict(size=25),  # Title font
+            font=dict(size=30),  # Title font
             x=0.0,
             xanchor='left'
         ),
@@ -586,12 +607,14 @@ elif selected == "Analysis":
         template="plotly_white",
         font=dict(size=30),  # Global font size (axes, ticks, legend)
         barmode='overlay'
+        # 👇 Tighter spacing settings
+        margin=dict(t=20, b=20, l=20, r=20),  # reduce default padding
    )
 
     # ---- Show in Streamlit
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=False)
 
-##########################################################################################################################          
+         
             
     with tab2:
         
@@ -602,7 +625,7 @@ elif selected == "Analysis":
         st.write(f'Incremental - {selected_identifier} - {selected_property}')
         st.dataframe(df_incremental,use_container_width=True)
         
-        
+ #################################################################### Crossplot #########################################       
 elif selected == "Crossplot":
 
     ########### setup widgets########################################Update#########################################################
@@ -753,7 +776,7 @@ elif selected == "Crossplot":
         st.dataframe(y_slice,use_container_width=True)
 
 
-##############################################BOXPLOTS UPDATED#################################################################################################
+############################################## BOXPLOTS UPDATED #################################################################################################
         
 
 elif selected == "Boxplots":
@@ -878,7 +901,7 @@ elif selected == "Boxplots":
         st.dataframe(box_data_project, use_container_width=True)
         st.dataframe(box_data_incremental, use_container_width=True)
 
-####################################################################Waterfall#########################################
+#################################################################### Waterfall #########################################
 elif selected == "Waterfall":
     
     
@@ -1014,7 +1037,7 @@ elif selected == "Waterfall":
         st.dataframe(box_data_project,use_container_width=True)           
         st.dataframe(box_data_incremental,use_container_width=True)           
         
-
+#################################################################### CASE SELECTION        #########################################
 
 elif selected == "Case selection":
     
