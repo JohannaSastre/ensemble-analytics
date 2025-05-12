@@ -502,6 +502,7 @@ elif selected == "Analysis":
     df_incremental_slice_cumprob['value'] = incremental_slice_sorted
     df_incremental_slice_cumprob['cum_prob'] = np.arange(len(incremental_slice_sorted),0, -1) / len(incremental_slice_sorted)
     
+    
     ########### plot data ANALYSIS UPDATED###############################################################################################
     
     
