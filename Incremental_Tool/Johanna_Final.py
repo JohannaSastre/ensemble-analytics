@@ -606,7 +606,7 @@ elif selected == "Analysis":
         showlegend=True,
         template="plotly_white",
         font=dict(size=30),  # Global font size (axes, ticks, legend)
-        barmode='overlay'
+        barmode='overlay',
         # 👇 Tighter spacing settings
         margin=dict(t=20, b=20, l=20, r=20),  # reduce default padding
    )

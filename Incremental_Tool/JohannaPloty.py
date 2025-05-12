@@ -1095,7 +1095,7 @@ fig.update_layout(
 # ---- Show in Streamlit
 st.plotly_chart(fig, use_container_width=True)
 
-    with tab2:
+with tab2:
         st.write('P10 rankings')
         st.write(p10_rankings)
         st.write('P50 rankings')
