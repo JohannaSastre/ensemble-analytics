@@ -1005,7 +1005,7 @@ elif selected == "Waterfall":
             measure=measures,
             x=labels,
             y=values,
-            text=[f"{v:.2f}" for v in values],
+            text=[f"{v:.2f}M" for v in values],
             textposition="outside",
         ))
 
