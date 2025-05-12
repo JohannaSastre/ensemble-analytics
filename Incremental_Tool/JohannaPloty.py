@@ -504,8 +504,6 @@ elif selected == "Analysis":
     
     
     ########### plot data ANALYSIS UPDATED###############################################################################################
-    
-    
     import plotly.graph_objects as go
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
@@ -595,20 +593,26 @@ elif selected == "Analysis":
     fig.update_yaxes(title_text="Cumulative Probability", row=2, col=2, secondary_y=True)
 
     # ---- Layout
-    fig.update_layout(
-        height=plot_height * 300,  # Increase height to give vertical space
-        width=1600,  # Increase width to accommodate legends and axis text
+        fig.update_layout(
+        height=plot_height * 400,  # Make this bigger if more traces
+        width=None,  # Let Streamlit fill width dynamically
+        autosize=True,
         title=dict(
             text=f"{selected_identifier}: {selected_property}",
-            font=dict(size=24),  # Slightly smaller title font
+            font=dict(size=20),
             x=0.0,
             xanchor='left'
         ),
-        showlegend=False,  # Turn off legend to avoid right margin issues (or keep only key traces)
-        template="plotly_white",
-        font=dict(size=14),  # Reduce global font size for axes and labels
-        barmode='overlay',
-        margin=dict(t=50, b=50, l=60, r=40),  # Give more breathing room
+        margin=dict(t=50, b=40, l=60, r=20),
+        template='plotly_white',
+        font=dict(size=12),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
     )
 
     # ---- Show in Streamlit

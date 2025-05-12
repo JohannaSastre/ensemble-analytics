@@ -612,7 +612,7 @@ elif selected == "Analysis":
    )
 
     # ---- Show in Streamlit
-    st.plotly_chart(fig, use_container_width=False)
+    st.plotly_chart(fig, use_container_width=True)
 
          
             
