@@ -903,139 +903,101 @@ elif selected == "Boxplots":
 
 #################################################################### Waterfall #########################################
 elif selected == "Waterfall":
-    
-    
-    tab1, tab2 = st.tabs(['Plots','Data'])
+    tab1, tab2 = st.tabs(['Plots', 'Data'])
     with tab1:
-    ########### setup widgets
-        
         data_dict_base = st.session_state['data_dict_base']
         data_dict_project = st.session_state['data_dict_project']
-        
-        regions = data_dict_base['Metadata']['Regions']
-        regions = sorted(regions, key=sort_key)
+
+        regions = sorted(data_dict_base['Metadata']['Regions'], key=sort_key)
         props = data_dict_base['Metadata']['Properties']
         dates = data_dict_base['Metadata']['Dates']
         wells = list(data_dict_base['Metadata']['Wells'])
-                                                     
-        dict_incremental_mapping = st.session_state['dict_incremental_mapping'] 
+        dict_incremental_mapping = st.session_state['dict_incremental_mapping']
 
         with st.sidebar.expander("Plot settings"):
-            plot_height = st.number_input("Plot height",4,16,8)
-            merge_zeros = st.checkbox('Merge values', props)
+            plot_height = st.number_input("Plot height", 4, 16, 8)
+            merge_zeros = st.checkbox('Merge values')
             if merge_zeros:
-                cutoff = st.number_input("Cutoff value",value = 1)
+                cutoff = st.number_input("Cutoff value", value=1)
 
-
-        selected_category = st.sidebar.selectbox("Select category",options=["Regions","Wells"])
+        selected_category = st.sidebar.selectbox("Select category", options=["Regions", "Wells"])
         selected_property = st.sidebar.selectbox('Select property', props)
-        selected_date = st.sidebar.select_slider('Select date',options = dates, format_func=lambda date: date.strftime("%Y-%m-%d"))
-    
+        selected_date = st.sidebar.select_slider('Select date', options=dates, format_func=lambda date: date.strftime("%Y-%m-%d"))
+
         box_data_base = pd.DataFrame()
         box_data_project = pd.DataFrame()
         box_data_incremental = pd.DataFrame()
-        
+
         if selected_category == 'Regions':
             identifiers = regions
             for region in identifiers:
-                df_base = data_dict_base['Regions'][region][selected_property].apply(pd.to_numeric, errors='coerce')  
-                df_project = data_dict_project['Regions'][region][selected_property].apply(pd.to_numeric, errors='coerce')  
-                
+                df_base = data_dict_base['Regions'][region][selected_property].apply(pd.to_numeric, errors='coerce')
+                df_project = data_dict_project['Regions'][region][selected_property].apply(pd.to_numeric, errors='coerce')
                 df_incremental = pd.DataFrame(index=dates)
                 for col_base in df_base.columns:
                     col_project = dict_incremental_mapping[col_base]
-                    df_incremental[col_project+' - '+col_base] = df_project[col_project]-df_base[col_base]
-                
-                base_slice = df_base.loc[selected_date]
-                project_slice =  df_project.loc[selected_date]
-                incremental_slice =  df_incremental.loc[selected_date]
-                
-                box_data_base[region] = base_slice
-                box_data_project[region] = project_slice
-                box_data_incremental[region] = incremental_slice
-                
+                    df_incremental[col_project + ' - ' + col_base] = df_project[col_project] - df_base[col_base]
+                box_data_base[region] = df_base.loc[selected_date]
+                box_data_project[region] = df_project.loc[selected_date]
+                box_data_incremental[region] = df_incremental.loc[selected_date]
+
         if selected_category == 'Wells':
             identifiers = wells
             for well in identifiers:
-                df_base = data_dict_base['wells'][well][selected_property].apply(pd.to_numeric, errors='coerce')  
-                df_project = data_dict_project['wells'][well][selected_property].apply(pd.to_numeric, errors='coerce')  
-                
+                df_base = data_dict_base['Wells'][well][selected_property].apply(pd.to_numeric, errors='coerce')
+                df_project = data_dict_project['Wells'][well][selected_property].apply(pd.to_numeric, errors='coerce')
                 df_incremental = pd.DataFrame(index=dates)
                 for col_base in df_base.columns:
                     col_project = dict_incremental_mapping[col_base]
-                    df_incremental[col_project+' - '+col_base] = df_project[col_project]-df_base[col_base]
-                
-                base_slice = df_base.loc[selected_date]
-                project_slice =  df_project.loc[selected_date]
-                incremental_slice =  df_incremental.loc[selected_date]
-                
-                box_data_base[well] = base_slice
-                box_data_project[well] = project_slice
-                box_data_incremental[well] = incremental_slice
-            
+                    df_incremental[col_project + ' - ' + col_base] = df_project[col_project] - df_base[col_base]
+                box_data_base[well] = df_base.loc[selected_date]
+                box_data_project[well] = df_project.loc[selected_date]
+                box_data_incremental[well] = df_incremental.loc[selected_date]
+
         base = box_data_base.mean().sum()
         project = box_data_project.mean().sum()
         incremental = box_data_incremental.mean()
-        
-        ############################################################
-        df_temp = pd.DataFrame(index = identifiers)
-        df_temp['Value'] = list(incremental)
-        
+
+        df_temp = pd.DataFrame({'Value': list(incremental)}, index=identifiers)
+
         if merge_zeros:
-            df_main = df_temp[df_temp['Value'].abs()>=cutoff]
-            df_other = df_temp[df_temp['Value'].abs()<cutoff]            
-
-            df_waterfall = pd.DataFrame(index = ['Base'] + list(df_main.index) + ['Other']+['Project'],columns = ['Value'])
-            df_waterfall['Value'] = [base] + list(df_main['Value'])+ [df_other['Value'].sum()]+[project]
-
+            df_main = df_temp[df_temp['Value'].abs() >= cutoff]
+            df_other = df_temp[df_temp['Value'].abs() < cutoff]
+            waterfall_labels = ['Base'] + list(df_main.index) + ['Other', 'Project']
+            waterfall_values = [base] + list(df_main['Value']) + [df_other['Value'].sum(), project]
         else:
-            df_waterfall = pd.DataFrame(index = ['Base'] + list(df_temp.index) + ['Project'],columns = ['Value'])
-            df_waterfall['Value'] = [base] + list(df_temp['Value']) +[project]
-        
-        
-        df_waterfall['Category'] = df_waterfall.index
-        
-        for i, ind in enumerate(df_waterfall.index):
-            if i == 0 or i == len(df_waterfall.index)-1:
-                df_waterfall.loc[ind,'Bottom']=0
-                continue
-            df_waterfall.loc[df_waterfall.index[i],'Bottom'] = df_waterfall.loc[df_waterfall.index[i-1],'Value'] + df_waterfall.loc[df_waterfall.index[i-1],'Bottom']
-        
-        df_waterfall['Total'] = df_waterfall['Value']+df_waterfall['Bottom']
-        df_waterfall["Color"] = ["blue"] + ["green" if v > 0 else "red" for v in df_waterfall["Value"][1:-1]] + ["blue"]
+            waterfall_labels = ['Base'] + list(df_temp.index) + ['Project']
+            waterfall_values = [base] + list(df_temp['Value']) + [project]
 
-        
-############################
-        
-        fig,ax = plt.subplots(figsize=(18,plot_height))
-        ax.bar(df_waterfall["Category"], 
-               df_waterfall["Value"], bottom=df_waterfall["Bottom"],
-               color=df_waterfall["Color"], edgecolor="black")
-        
-        for i, value in enumerate(df_waterfall.index):
-            height = df_waterfall['Total'][i]
-            value = df_waterfall['Value'][i]
-            ax.text(i, height*1.001, f"{value:.3e}", ha="center", va="bottom", rotation = 45)
+        # Measure type: 'absolute' for base, 'relative' for changes, 'total' for project
+        measure = ['absolute'] + ['relative'] * (len(waterfall_labels) - 2) + ['total']
 
-        # Formatting
-        ax.grid(axis="y", linestyle="--", alpha=0.7)
-        plt.xticks(rotation=30)
-          
-        ax.set_ylabel(f'{selected_property} @ {selected_date.strftime("%Y-%m-%d")}')
-        ax.set_xlabel(selected_category)
-        ax.set_ylim(df_waterfall["Total"].min()*0.95,df_waterfall["Total"][1:-1].max()*1.05)
-        ax.grid()
-        ax.legend()
-        plt.title('Waterfall chart for MEAN Incremental values')
-        
-        st.pyplot(fig, use_container_width=True)
-    
-    
-    with tab2:            
-        st.dataframe(df_waterfall,use_container_width=True,height=700)          
-        st.dataframe(box_data_base,use_container_width=True)           
-        st.dataframe(box_data_project,use_container_width=True)           
-        st.dataframe(box_data_incremental,use_container_width=True)           
+        fig = go.Figure(go.Waterfall(
+            x=waterfall_labels,
+            y=waterfall_values,
+            measure=measure,
+            connector=dict(line=dict(color="black")),
+            increasing=dict(marker=dict(color="green")),
+            decreasing=dict(marker=dict(color="red")),
+            totals=dict(marker=dict(color="blue"))
+        ))
+
+        fig.update_layout(
+            title="Waterfall Chart for 12345 Incremental Values",
+            height=plot_height * 100,
+            yaxis_title=f'{selected_property} @ {selected_date.strftime("%Y-%m-%d")}')
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    with tab2:
+        st.dataframe(pd.DataFrame({'Base': box_data_base.mean(),
+                                   'Project': box_data_project.mean(),
+                                   'Incremental': box_data_incremental.mean()}), use_container_width=True)
+        st.dataframe(box_data_base, use_container_width=True)
+        st.dataframe(box_data_project, use_container_width=True)
+        st.dataframe(box_data_incremental, use_container_width=True)
+
+     
         
 #################################################################### CASE SELECTION        #########################################
 import plotly.graph_objects as go
