@@ -888,7 +888,7 @@ elif selected == "Boxplots":
                     ),
                     tickfont=dict(size=14)
                 ),
-                height=plot_height * 120,
+                height=plot_height * 150,
                 template="plotly_white"
             )
 
