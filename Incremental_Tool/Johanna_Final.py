@@ -1020,194 +1020,131 @@ elif selected == "Waterfall":
 
         
 #################################################################### CASE SELECTION        #########################################
+    import streamlit as st
+    import pandas as pd
+    import plotly.graph_objects as go
+    import datetime as dt
+    import numpy as np
+    from plotly.subplots import make_subplots
+
 elif selected == "Case selection":
-    
-    # Retrieve base data from session state
     data_dict_base = st.session_state['data_dict_base']
     data_dict_project = st.session_state['data_dict_project']
-    
-    regions = data_dict_base['Metadata']['Regions']
-    regions = list(sorted(regions, key=sort_key))
+    dict_incremental_mapping = st.session_state['dict_incremental_mapping']
+
+    regions = sorted(data_dict_base['Metadata']['Regions'], key=sort_key)
     props = data_dict_base['Metadata']['Properties']
     dates = data_dict_base['Metadata']['Dates']
     wells = list(data_dict_base['Metadata']['Wells'])
-                                         
-    dict_incremental_mapping = st.session_state['dict_incremental_mapping'] 
 
-
-
-
-    # Allow the user to select the number of expander groups
-    #num_groups = st.sidebar.number_input("Select number of variable sets (maximum 3)", min_value=1, max_value=3, value=1)
-    
     with st.sidebar.expander("Plot settings"):
-        plot_height = st.number_input("Plot height",1,16,4)
-    num_groups = st.sidebar.number_input('Number of properties:',1,10,1)
-    select_source = st.sidebar.selectbox(f"Select Source",options = ['Base','Project','Incremental'])
+        plot_height = st.number_input("Plot height", 1, 16, 4)
+    num_groups = st.sidebar.number_input('Number of properties:', 1, 10, 1)
+    select_source = st.sidebar.selectbox("Select Source", ['Base', 'Project', 'Incremental'])
 
-    selected_identifiers = []
-    selected_props = []
-    selected_dates_objects = []
-    selected_dates_strings = []
-    weights = []
-    
-    p50_cases = pd.DataFrame()
-    
-    dfs = []
-    dfs_cumprob = []
-    
-    tab1, tab2 = st.tabs(['Plots','Data'])
+    selected_identifiers, selected_props, selected_dates_objects = [], [], []
+    dfs, dfs_cumprob, weights = [], [], []
+
+    for i in range(num_groups):
+        with st.sidebar.expander(f"Property {i+1}", expanded=True):
+            cat = st.selectbox(f"Select Category {i+1}", ['Field', 'Region', 'Well'])
+            prop = st.selectbox(f"Select Property {i+1}", props)
+            selected_props.append(prop)
+
+            if cat == 'Field':
+                df_base = data_dict_base['Field'][prop].apply(pd.to_numeric, errors='coerce')
+                df_project = data_dict_project['Field'][prop].apply(pd.to_numeric, errors='coerce')
+                selected_identifiers.append('Field')
+            elif cat == 'Region':
+                region = st.selectbox(f"Select Region {i+1}", regions)
+                df_base = data_dict_base['Regions'][region][prop].apply(pd.to_numeric, errors='coerce')
+                df_project = data_dict_project['Regions'][region][prop].apply(pd.to_numeric, errors='coerce')
+                selected_identifiers.append(region)
+            else:
+                well = st.selectbox(f"Select Well {i+1}", wells)
+                df_base = data_dict_base['Wells'][well][prop].apply(pd.to_numeric, errors='coerce')
+                df_project = data_dict_project['Wells'][well][prop].apply(pd.to_numeric, errors='coerce')
+                selected_identifiers.append(well)
+
+            df_incremental = df_project - df_base
+            df = {"Base": df_base, "Project": df_project, "Incremental": df_incremental}[select_source]
+            df.index = dates
+            dfs.append(df)
+
+            selected_date_str = st.select_slider(f"Select Date Slice {i+1}", options=[d.strftime('%Y-%m-%d') for d in dates])
+            selected_date = dt.datetime.strptime(selected_date_str, "%Y-%m-%d")
+            selected_dates_objects.append(selected_date)
+
+            series = df.loc[selected_date]
+            df_cum = pd.DataFrame({'value': series.sort_values()})
+            df_cum['cum_prob'] = np.linspace(1, 0, len(df_cum))
+            dfs_cumprob.append(df_cum)
+
+            weights.append(st.number_input(f"Weight {i+1}", 0, 100, 1))
+
+    # Ranking
+    p10, p50, p90 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    for i, df_cum in enumerate(dfs_cumprob):
+        for idx in df_cum.index:
+            p10.loc[idx, f"{i}_{selected_props[i]}"] = abs(df_cum.loc[idx, 'cum_prob'] - 0.9) * weights[i]
+            p50.loc[idx, f"{i}_{selected_props[i]}"] = abs(df_cum.loc[idx, 'cum_prob'] - 0.5) * weights[i]
+            p90.loc[idx, f"{i}_{selected_props[i]}"] = abs(df_cum.loc[idx, 'cum_prob'] - 0.1) * weights[i]
+
+    p10['sum'] = p10.sum(axis=1)
+    p50['sum'] = p50.sum(axis=1)
+    p90['sum'] = p90.sum(axis=1)
+
+    p10_case = p10.sort_values('sum').index[0]
+    p50_case = p50.sort_values('sum').index[0]
+    p90_case = p90.sort_values('sum').index[0]
+
+    # Tabs for plotting and data
+    tab1, tab2 = st.tabs(["Plots", "Data"])
+
     with tab1:
-        # Create a 3-column, 2-row subplot grid (for now..., remember: num_groups is hardcoded and set to 1)
-        fig, axs = plt.subplots(num_groups,2, figsize=(12, plot_height*num_groups))
-        
+        fig = make_subplots(
+            rows=num_groups,
+            cols=2,
+            subplot_titles=[f"{selected_props[i]} - {selected_identifiers[i]}" for i in range(num_groups)] * 2,
+            shared_xaxes=False,
+            vertical_spacing=0.15,
+            horizontal_spacing=0.05
+        )
+
         for i in range(num_groups):
-            with st.sidebar:
-                with st.expander(f"Property {i+1}", expanded=True):
-                
-                    select_category = st.selectbox(f"Select Category {i+1}",options = ['Field','Region','Well'])
-                    selected_props.append(st.selectbox(f'Property {i+1}', props, index=min(i,len(props)-1)))
-    
-                    if select_category == 'Field':
-                        selected_identifiers.append('Field')
-                        selected_identifier = selected_identifiers[i]
-                        
-                        df_base = data_dict_base['Field'][selected_props[i]].apply(pd.to_numeric, errors='coerce')           
-                        df_project = data_dict_project['Field'][selected_props[i]].apply(pd.to_numeric, errors='coerce')   
-                        
-                    if select_category == 'Region':
-                        selected_identifiers.append(st.selectbox(f'Select region {i+1}', regions))
-                        selected_identifier = selected_identifiers[i]
-                        
-                        df_base = data_dict_base['Regions'][selected_identifier][selected_props[i]].apply(pd.to_numeric, errors='coerce')           
-                        df_project = data_dict_project['Regions'][selected_identifier][selected_props[i]].apply(pd.to_numeric, errors='coerce')   
-                        
-                    if select_category == 'Wells':
-                        selected_identifiers.append(st.selectbox(f'Select well {i+1}', wells))
-                        selected_identifier = selected_identifiers[i]
-                        
-                        df_base = data_dict_base['Wells'][selected_identifier][selected_props[i]].apply(pd.to_numeric, errors='coerce')           
-                        df_project = data_dict_project['Wells'][selected_identifier][selected_props[i]].apply(pd.to_numeric, errors='coerce')   
-                        
-                        
-                        
-                    df_incremental = pd.DataFrame(index=dates)
-                    for col_base in df_base.columns:
-                        col_project = dict_incremental_mapping[col_base]
-                        df_incremental[col_project+' - '+col_base] = df_project[col_project]-df_base[col_base]
-                    
-                    if select_source == 'Base':
-                        df = df_base.copy()
-                    if select_source == 'Project':
-                        df = df_project.copy()
-                    elif select_source == 'Incremental':
-                        df = df_incremental.copy()
-                    
-                    dfs.append(df)
-            
-                    # Convert index to datetime
-                    df.index = dates
-            
-                    selected_dates_strings.append(st.select_slider(f'Select date slice {i+1}', options=[d.strftime('%Y-%m-%d') for d in dates],value=[d.strftime('%Y-%m-%d') for d in dates][-1]))
-                    selected_dates_objects.append(dt.datetime.strptime(selected_dates_strings[i], "%Y-%m-%d"))
-        
-                    weights.append(st.number_input(f'Weight {i+1}',0,100,1))            
-        
-                    data = df.loc[selected_dates_objects[i]]
-                    data_sorted = data.sort_values()
-                                    
-                    df_cumprob = pd.DataFrame(index = data_sorted.index)
-                    df_cumprob['value'] = data_sorted
-                    #df_cumprob['cum_prob'] = np.arange(1, len(data_sorted) + 1) / len(data_sorted)
-                    df_cumprob['cum_prob'] = np.arange(len(data_sorted),0, -1) / len(data_sorted)
-                    
-                    dfs_cumprob.append(df_cumprob)
-        
-        p10_rankings = pd.DataFrame(index = df_cumprob.index)
-        p50_rankings = pd.DataFrame(index = df_cumprob.index)
-        p90_rankings = pd.DataFrame(index = df_cumprob.index)
-        
-        for i in range(num_groups):
-            df_cumprob = dfs_cumprob[i]
-            
-            for index in p50_rankings.index:
-                p10_rankings.loc[index, str(i)+'_'+selected_props[i]] = abs((df_cumprob.loc[index,'cum_prob']-0.9))*weights[i]
-                p50_rankings.loc[index, str(i)+'_'+selected_props[i]] = abs((df_cumprob.loc[index,'cum_prob']-0.5))*weights[i]
-                p90_rankings.loc[index, str(i)+'_'+selected_props[i]] = abs((df_cumprob.loc[index,'cum_prob']-0.1))*weights[i]
-                
-                
-        p10_rankings['sum'] = p10_rankings.sum(axis=1)
-        p50_rankings['sum'] = p50_rankings.sum(axis=1)
-        p90_rankings['sum'] = p90_rankings.sum(axis=1)
-        
-        p10_rankings.sort_values(by='sum',inplace=True, ascending=True)
-        p50_rankings.sort_values(by='sum',inplace=True, ascending=True)
-        p90_rankings.sort_values(by='sum',inplace=True, ascending=True)
-            
-        p10_case = p10_rankings.index[0]
-        p50_case = p50_rankings.index[0]
-        p90_case = p90_rankings.index[0]
-        
-        
-        for i in range(num_groups):
-            
-            df = dfs[i]
-            df_cumprob = dfs_cumprob[i]
-            
-            if num_groups == 1:
-                ax = axs[0]
-            else:
-                ax = axs[i,0]
-                
-            ax.plot(df,color='grey', alpha=0.5)    
-            ax.axvline(selected_dates_objects[i], color='black', linestyle='dashed', label="Selected Timeslice", zorder=3)
-            ax.plot(df[p90_case], color='firebrick', linestyle='solid', label=p90_case)
-            ax.plot(df[p50_case], color='blue', linestyle='solid', label=p50_case)
-            ax.plot(df[p10_case], color='green', linestyle='solid', label=p10_case)
-            ax.set_xlabel('Date')
-            ax.set_ylabel(selected_props[i])
-            ax.legend()
-            ax.set_title(selected_identifiers[i]+': '+select_source)
-            ax.grid()
-            
-            
-            if num_groups == 1:
-                ax1 = axs[1]
-            else:
-                ax1 = axs[i,1]
-                
-            ax1.scatter(df_cumprob['value'], df_cumprob['cum_prob'], color='lightblue', alpha=0.9, label="Cumulative Probability")
-            ax1.axhline(0.1, color='Firebrick', linestyle='dashdot')
-            ax1.axhline(0.5, color='blue', linestyle='dashdot')
-            ax1.axhline(0.9, color='green', linestyle='dashdot')
-                            
-            ax1.scatter(df_cumprob.loc[p90_case,'value'],df_cumprob.loc[p90_case,'cum_prob'], color='firebrick', s=150, label=p90_case, edgecolor='black', linewidth=1, marker='^')
-            ax1.scatter(df_cumprob.loc[p50_case,'value'],df_cumprob.loc[p50_case,'cum_prob'], color='blue', s=150, label=p50_case, edgecolor='black', linewidth=1, marker='^')
-            ax1.scatter(df_cumprob.loc[p10_case,'value'],df_cumprob.loc[p10_case,'cum_prob'], color='green', s=150, label=p10_case, edgecolor='black', linewidth=1, marker='^' )
-            
-            ax1.set_xlabel(selected_props[i] +' @ '+ selected_dates_strings[i])
-            ax1.set_ylabel("Cumulative Probability")
-            ax1.set_title(selected_identifiers[i]+': '+select_source)
-            #ax1.invert_yax1is()
-            ax1.grid(True)
-            ax1.legend()
-    
-        # Adjust layout
-        plt.tight_layout()
-        # Display in Streamlit
-        st.pyplot(fig, use_container_width=True)
-    
+            df, df_cum = dfs[i], dfs_cumprob[i]
+            date = selected_dates_objects[i]
+
+            # Time series
+            for col in df.columns:
+                fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=f"{col} - {selected_props[i]}",
+                                         line=dict(width=1), opacity=0.5), row=i + 1, col=1)
+
+            fig.add_shape(type="line", x0=date, x1=date, y0=0, y1=1, line=dict(color="black", dash="dash"),
+                          xref=f"x{i*2+1}", yref="paper", row=i + 1, col=1)
+
+            # Cumulative probability
+            fig.add_trace(go.Scatter(x=df_cum['value'], y=df_cum['cum_prob'], mode='markers',
+                                     name='CDF', marker=dict(color='grey')), row=i + 1, col=2)
+
+            for case, color in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red']):
+                if case in df_cum.index:
+                    fig.add_trace(go.Scatter(x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
+                                             mode='markers+text', name=case, text=[case],
+                                             marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
+
+        fig.update_layout(height=num_groups * plot_height * 100,
+                          showlegend=True,
+                          title="Case Selection Overview",
+                          template="plotly_white")
+
+        st.plotly_chart(fig, use_container_width=True)
+
     with tab2:
-        st.write('P10 rankings')
-        st.write(p10_rankings)
-        st.write('P50 rankings')
-        st.write(p50_rankings)
-        st.write('P90 rankings')
-        st.write(p90_rankings)    
-    
-        st.write('Base data')
-        st.dataframe(df_base)
-        st.write('Project data')
-        st.dataframe(df_project)        
-        st.write('Incremental data')
-        st.dataframe(df_incremental)
+        st.subheader("P10 / P50 / P90 Rankings")
+        st.write("P10 Cases")
+        st.dataframe(p10.sort_values("sum"))
+        st.write("P50 Cases")
+        st.dataframe(p50.sort_values("sum"))
+        st.write("P90 Cases")
+        st.dataframe(p90.sort_values("sum"))
