@@ -1026,12 +1026,13 @@ import plotly.graph_objects as go
 import datetime as dt
 import numpy as np
 
-if selected == "Case selection":
+
+elif selected == "Case selection":
     data_dict_base = st.session_state['data_dict_base']
     data_dict_project = st.session_state['data_dict_project']
     dict_incremental_mapping = st.session_state['dict_incremental_mapping']
 
-    regions = list(sorted(data_dict_base['Metadata']['Regions']))
+    regions = sorted(data_dict_base['Metadata']['Regions'], key=sort_key)
     props = data_dict_base['Metadata']['Properties']
     dates = data_dict_base['Metadata']['Dates']
     wells = list(data_dict_base['Metadata']['Wells'])
@@ -1039,104 +1040,95 @@ if selected == "Case selection":
     with st.sidebar.expander("Plot settings"):
         plot_height = st.number_input("Plot height", 1, 16, 4)
     num_groups = st.sidebar.number_input('Number of properties:', 1, 10, 1)
-    select_source = st.sidebar.selectbox(f"Select Source", options=['Base', 'Project', 'Incremental'])
+    select_source = st.sidebar.selectbox("Select Source", ['Base', 'Project', 'Incremental'])
 
-    selected_identifiers = []
-    selected_props = []
-    selected_dates_objects = []
-    selected_dates_strings = []
-    weights = []
+    selected_identifiers, selected_props, selected_dates_objects = [], [], []
+    dfs, dfs_cumprob, weights = [], [], []
 
-    dfs = []
-    dfs_cumprob = []
+    for i in range(num_groups):
+        with st.sidebar.expander(f"Property {i+1}", expanded=True):
+            cat = st.selectbox(f"Select Category {i+1}", ['Field', 'Region', 'Well'])
+            prop = st.selectbox(f"Select Property {i+1}", props)
+            selected_props.append(prop)
 
-    tab1, tab2 = st.tabs(['Plots', 'Data'])
-    with tab1:
-        for i in range(num_groups):
-            with st.sidebar:
-                with st.expander(f"Property {i+1}", expanded=True):
-                    select_category = st.selectbox(f"Select Category {i+1}", options=['Field', 'Region', 'Well'])
-                    selected_props.append(st.selectbox(f'Property {i+1}', props, index=min(i, len(props) - 1)))
+            if cat == 'Field':
+                df_base = data_dict_base['Field'][prop].apply(pd.to_numeric, errors='coerce')
+                df_project = data_dict_project['Field'][prop].apply(pd.to_numeric, errors='coerce')
+                selected_identifiers.append('Field')
+            elif cat == 'Region':
+                region = st.selectbox(f"Select Region {i+1}", regions)
+                df_base = data_dict_base['Regions'][region][prop].apply(pd.to_numeric, errors='coerce')
+                df_project = data_dict_project['Regions'][region][prop].apply(pd.to_numeric, errors='coerce')
+                selected_identifiers.append(region)
+            else:
+                well = st.selectbox(f"Select Well {i+1}", wells)
+                df_base = data_dict_base['Wells'][well][prop].apply(pd.to_numeric, errors='coerce')
+                df_project = data_dict_project['Wells'][well][prop].apply(pd.to_numeric, errors='coerce')
+                selected_identifiers.append(well)
 
-                    if select_category == 'Field':
-                        selected_identifiers.append('Field')
-                        df_base = data_dict_base['Field'][selected_props[i]].apply(pd.to_numeric, errors='coerce')
-                        df_project = data_dict_project['Field'][selected_props[i]].apply(pd.to_numeric, errors='coerce')
+            df_incremental = df_project - df_base
+            df = {"Base": df_base, "Project": df_project, "Incremental": df_incremental}[select_source]
+            df.index = dates
+            dfs.append(df)
 
-                    elif select_category == 'Region':
-                        selected_identifiers.append(st.selectbox(f'Select region {i+1}', regions))
-                        df_base = data_dict_base['Regions'][selected_identifiers[i]][selected_props[i]].apply(pd.to_numeric, errors='coerce')
-                        df_project = data_dict_project['Regions'][selected_identifiers[i]][selected_props[i]].apply(pd.to_numeric, errors='coerce')
+            selected_date_str = st.select_slider(f"Select Date Slice {i+1}", options=[d.strftime('%Y-%m-%d') for d in dates])
+            selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d")
+            selected_dates_objects.append(selected_date)
 
-                    elif select_category == 'Well':
-                        selected_identifiers.append(st.selectbox(f'Select well {i+1}', wells))
-                        df_base = data_dict_base['Wells'][selected_identifiers[i]][selected_props[i]].apply(pd.to_numeric, errors='coerce')
-                        df_project = data_dict_project['Wells'][selected_identifiers[i]][selected_props[i]].apply(pd.to_numeric, errors='coerce')
+            series = df.loc[selected_date]
+            df_cum = pd.DataFrame({'value': series.sort_values()})
+            df_cum['cum_prob'] = np.linspace(1, 0, len(df_cum))
+            dfs_cumprob.append(df_cum)
 
-                    df_incremental = pd.DataFrame(index=dates)
-                    for col_base in df_base.columns:
-                        col_project = dict_incremental_mapping[col_base]
-                        df_incremental[col_project + ' - ' + col_base] = df_project[col_project] - df_base[col_base]
+            weights.append(st.number_input(f"Weight {i+1}", 0, 100, 1))
 
-                    df = df_base if select_source == 'Base' else df_project if select_source == 'Project' else df_incremental
-                    dfs.append(df)
-                    df.index = dates
+    # Ranking
+    p10, p50, p90 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    for i, df_cum in enumerate(dfs_cumprob):
+        for idx in df_cum.index:
+            p10.loc[idx, f"{i}_{selected_props[i]}"] = abs(df_cum.loc[idx, 'cum_prob'] - 0.9) * weights[i]
+            p50.loc[idx, f"{i}_{selected_props[i]}"] = abs(df_cum.loc[idx, 'cum_prob'] - 0.5) * weights[i]
+            p90.loc[idx, f"{i}_{selected_props[i]}"] = abs(df_cum.loc[idx, 'cum_prob'] - 0.1) * weights[i]
 
-                    date_str = st.select_slider(f'Select date slice {i+1}', options=[d.strftime('%Y-%m-%d') for d in dates], value=[d.strftime('%Y-%m-%d') for d in dates][-1])
-                    selected_dates_strings.append(date_str)
-                    selected_dates_objects.append(dt.datetime.strptime(date_str, "%Y-%m-%d"))
-                    weights.append(st.number_input(f'Weight {i+1}', 0, 100, 1))
+    p10['sum'] = p10.sum(axis=1)
+    p50['sum'] = p50.sum(axis=1)
+    p90['sum'] = p90.sum(axis=1)
 
-                    data = df.loc[selected_dates_objects[i]]
-                    data_sorted = data.sort_values()
-                    df_cumprob = pd.DataFrame({'value': data_sorted, 'cum_prob': np.arange(len(data_sorted), 0, -1) / len(data_sorted)})
-                    dfs_cumprob.append(df_cumprob)
+    p10_case, p50_case, p90_case = p10.sort_values('sum').index[0], p50.sort_values('sum').index[0], p90.sort_values('sum').index[0]
 
-        fig = go.Figure()
-        p10_rankings, p50_rankings, p90_rankings = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    # Plotly chart
+    fig = make_subplots(rows=num_groups, cols=2, vertical_spacing=0.12,
+                        subplot_titles=[f"{selected_identifiers[i]}: {selected_props[i]} - Time Series" for i in range(num_groups)] +
+                                       [f"{selected_identifiers[i]}: {selected_props[i]} - Cumulative Probability" for i in range(num_groups)])
 
-        for i in range(num_groups):
-            df = dfs[i]
-            df_cumprob = dfs_cumprob[i]
-            selected_identifier = selected_identifiers[i]
+    for i in range(num_groups):
+        df, df_cum = dfs[i], dfs_cumprob[i]
+        date = selected_dates_objects[i]
 
-            p10_rankings[selected_props[i]] = abs((df_cumprob['cum_prob'] - 0.9)) * weights[i]
-            p50_rankings[selected_props[i]] = abs((df_cumprob['cum_prob'] - 0.5)) * weights[i]
-            p90_rankings[selected_props[i]] = abs((df_cumprob['cum_prob'] - 0.1)) * weights[i]
+        # Time series
+        for col in df.columns:
+            fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col,
+                                     line=dict(width=1), opacity=0.5), row=i + 1, col=1)
 
-            for col in df.columns:
-                fig.add_trace(go.Scatter(x=df.index, y=df[col], line=dict(color='lightgrey'), showlegend=False))
+        fig.add_vline(x=date, line_dash='dash', line_color='black', row=i + 1, col=1)
 
-            for percentile, color, label_df in zip([0.1, 0.5, 0.9], ['firebrick', 'blue', 'green'], [p10_rankings, p50_rankings, p90_rankings]):
-                best_case = label_df.sum(axis=1).idxmin()
-                fig.add_trace(go.Scatter(
-                    x=df.index, y=df[best_case],
-                    line=dict(color=color, width=3),
-                    name=f'{selected_props[i]} - {percentile*100:.0f}%'
-                ))
+        # Cumulative plot
+        fig.add_trace(go.Scatter(x=df_cum['value'], y=df_cum['cum_prob'], mode='markers',
+                                 name='CDF', marker=dict(color='grey')), row=i + 1, col=2)
 
-            fig.add_vline(
-                x=selected_dates_objects[i],
-                line=dict(color='black', dash='dash')
-            )
+        for case, color in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red']):
+            fig.add_trace(go.Scatter(x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
+                                     mode='markers+text', name=case,
+                                     text=[case], marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
 
-        fig.update_layout(
-            height=plot_height * 200,
-            title="Selected Cases - Time Series",
-            xaxis_title="Date",
-            yaxis_title="Property Value",
-            template="plotly_white",
-            font=dict(size=16)
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
+    fig.update_layout(height=num_groups * 400, showlegend=False, title="Case Selection Overview", template="plotly_white")
+    st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
-        st.write('P10 rankings')
-        st.dataframe(p10_rankings)
-        st.write('P50 rankings')
-        st.dataframe(p50_rankings)
-        st.write('P90 rankings')
-        st.dataframe(p90_rankings)
-        st.write('Last Incremental Data')
-        st.dataframe(df)
+        st.subheader("P10 / P50 / P90 Rankings")
+        st.write("P10 Cases")
+        st.dataframe(p10.sort_values("sum"))
+        st.write("P50 Cases")
+        st.dataframe(p50.sort_values("sum"))
+        st.write("P90 Cases")
+        st.dataframe(p90.sort_values("sum"))
