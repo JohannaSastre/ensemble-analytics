@@ -1067,10 +1067,17 @@ elif selected == "Case selection":
                 df_project = data_dict_project['Wells'][well][prop].apply(pd.to_numeric, errors='coerce')
                 selected_identifiers.append(well)
 
-            df_incremental = df_project - df_base
+            df_incremental = pd.DataFrame(index=dates)
+            for col_base in df_base.columns:
+                if col_base in dict_incremental_mapping:
+                    col_project = dict_incremental_mapping[col_base]
+                    if col_project in df_project.columns:
+                        df_incremental[f"{col_project} - {col_base}"] = df_project[col_project] - df_base[col_base]
+
             df = {"Base": df_base, "Project": df_project, "Incremental": df_incremental}[select_source]
             df.index = dates
             dfs.append(df)
+
 
             selected_date_str = st.select_slider(f"Select Date Slice {i+1}", options=[d.strftime('%Y-%m-%d') for d in dates], key=f"date_{i}")
             selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d")
