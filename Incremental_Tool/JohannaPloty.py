@@ -590,7 +590,7 @@ elif selected == "Analysis":
 
     # ---- Layout
     fig.update_layout(
-        height=plot_height * 120,
+        height=plot_height * 100,
         title=dict(
             text=f"{selected_identifier}: {selected_property}",
             font=dict(size=25),  # Title font
@@ -880,7 +880,7 @@ elif selected == "Boxplots":
                     ),
                     tickfont=dict(size=14)
                 ),
-                height=plot_height * 120,
+                height=plot_height * 100,
                 template="plotly_white"
             )
 
@@ -1020,8 +1020,156 @@ elif selected == "Waterfall":
 
         
 #################################################################### CASE SELECTION        #########################################
-elif selected == "Case selection":
+import streamlit as st
+import pandas as pd
+import datetime as dt
+import plotly.graph_objects as go
+
+if selected == "Case selection":
     
+    # Retrieve base data from session state
+    data_dict_base = st.session_state['data_dict_base']
+    data_dict_project = st.session_state['data_dict_project']
+    
+    regions = data_dict_base['Metadata']['Regions']
+    regions = list(sorted(regions, key=sort_key))
+    props = data_dict_base['Metadata']['Properties']
+    dates = data_dict_base['Metadata']['Dates']
+    wells = list(data_dict_base['Metadata']['Wells'])
+                                         
+    dict_incremental_mapping = st.session_state['dict_incremental_mapping'] 
+
+    with st.sidebar.expander("Plot settings"):
+        plot_height = st.number_input("Plot height", 1, 16, 4)
+    num_groups = st.sidebar.number_input('Number of properties:', 1, 10, 1)
+    select_source = st.sidebar.selectbox(f"Select Source", options=['Base', 'Project', 'Incremental'])
+
+    selected_identifiers = []
+    selected_props = []
+    selected_dates_objects = []
+    selected_dates_strings = []
+    weights = []
+    
+    p50_cases = pd.DataFrame()
+    
+    dfs = []
+    dfs_cumprob = []
+    
+    tab1, tab2 = st.tabs(['Plots', 'Data'])
+    with tab1:
+        fig = go.Figure()
+        
+        for i in range(num_groups):
+            with st.sidebar:
+                with st.expander(f"Property {i+1}", expanded=True):
+                
+                    select_category = st.selectbox(f"Select Category {i+1}", options=['Field', 'Region', 'Well'])
+                    selected_props.append(st.selectbox(f'Property {i+1}', props, index=min(i, len(props)-1)))
+    
+                    if select_category == 'Field':
+                        selected_identifiers.append('Field')
+                        selected_identifier = selected_identifiers[i]
+                        
+                        df_base = data_dict_base['Field'][selected_props[i]].apply(pd.to_numeric, errors='coerce')           
+                        df_project = data_dict_project['Field'][selected_props[i]].apply(pd.to_numeric, errors='coerce')   
+                        
+                    if select_category == 'Region':
+                        selected_identifiers.append(st.selectbox(f'Select region {i+1}', regions))
+                        selected_identifier = selected_identifiers[i]
+                        
+                        df_base = data_dict_base['Regions'][selected_identifier][selected_props[i]].apply(pd.to_numeric, errors='coerce')           
+                        df_project = data_dict_project['Regions'][selected_identifier][selected_props[i]].apply(pd.to_numeric, errors='coerce')   
+                        
+                    if select_category == 'Wells':
+                        selected_identifiers.append(st.selectbox(f'Select well {i+1}', wells))
+                        selected_identifier = selected_identifiers[i]
+                        
+                        df_base = data_dict_base['Wells'][selected_identifier][selected_props[i]].apply(pd.to_numeric, errors='coerce')           
+                        df_project = data_dict_project['Wells'][selected_identifier][selected_props[i]].apply(pd.to_numeric, errors='coerce')   
+                        
+                    df_incremental = pd.DataFrame(index=dates)
+                    for col_base in df_base.columns:
+                        col_project = dict_incremental_mapping[col_base]
+                        df_incremental[col_project + ' - ' + col_base] = df_project[col_project] - df_base[col_base]
+                    
+                    if select_source == 'Base':
+                        df = df_base.copy()
+                    if select_source == 'Project':
+                        df = df_project.copy()
+                    elif select_source == 'Incremental':
+                        df = df_incremental.copy()
+                    
+                    dfs.append(df)
+            
+                    # Convert index to datetime
+                    df.index = dates
+            
+                    selected_dates_strings.append(st.select_slider(f'Select date slice {i+1}', options=[d.strftime('%Y-%m-%d') for d in dates], value=[d.strftime('%Y-%m-%d') for d in dates][-1]))
+                    selected_dates_objects.append(dt.datetime.strptime(selected_dates_strings[i], "%Y-%m-%d"))
+        
+                    weights.append(st.number_input(f'Weight {i+1}', 0, 100, 1))            
+        
+                    data = df.loc[selected_dates_objects[i]]
+                    data_sorted = data.sort_values()
+                                                    
+                    df_cumprob = pd.DataFrame(index=data_sorted.index)
+                    df_cumprob['value'] = data_sorted
+                    df_cumprob['cum_prob'] = np.arange(len(data_sorted), 0, -1) / len(data_sorted)
+                    
+                    dfs_cumprob.append(df_cumprob)
+        
+        p10_rankings = pd.DataFrame(index=df_cumprob.index)
+        p50_rankings = pd.DataFrame(index=df_cumprob.index)
+        p90_rankings = pd.DataFrame(index=df_cumprob.index)
+        
+        for i in range(num_groups):
+            df_cumprob = dfs_cumprob[i]
+            
+            for index in p50_rankings.index:
+                p10_rankings.loc[index, str(i) + '_' + selected_props[i]] = abs((df_cumprob.loc[index, 'cum_prob'] - 0.9)) * weights[i]
+                p50_rankings.loc[index, str(i) + '_' + selected_props[i]] = abs((df_cumprob.loc[index, 'cum_prob'] - 0.5)) * weights[i]
+                p90_rankings.loc[index, str(i) + '_' + selected_props[i]] = abs((df_cumprob.loc[index, 'cum_prob'] - 0.1)) * weights[i]
+                
+        p10_rankings['sum'] = p10_rankings.sum(axis=1)
+        p50_rankings['sum'] = p50_rankings.sum(axis=1)
+        p90_rankings['sum'] = p90_rankings.sum(axis=1)
+        
+        p10_rankings.sort_values(by='sum', inplace=True, ascending=True)
+        p50_rankings.sort_values(by='sum', inplace=True, ascending=True)
+        p90_rankings.sort_values(by='sum', inplace=True, ascending=True)
+            
+        p10_case = p10_rankings.index[0]
+        p50_case = p50_rankings.index[0]
+        p90_case = p90_rankings.index[0]
+        
+        for i in range(num_groups):
+            df = dfs[i]
+            df_cumprob = dfs_cumprob[i]
+            
+            fig.add_trace(go.Scatter(x=df.index, y=df[p90_case], mode='lines', name=f'{p90_case} - {selected_props[i]}', line=dict(color='firebrick')))
+            fig.add_trace(go.Scatter(x=df.index, y=df[p50_case], mode='lines', name=f'{p50_case} - {selected_props[i]}', line=dict(color='blue')))
+            fig.add_trace(go.Scatter(x=df.index, y=df[p10_case], mode='lines', name=f'{p10_case} - {selected_props[i]}', line=dict(color='green')))
+            fig.add_trace(go.Scatter(x=df.index, y=df[selected_dates_objects[i]], mode='lines', name=f'Selected Timeslice - {selected_props[i]}', line=dict(color='black', dash='dash')))
+            
+            fig.update_layout(title=f'{selected_identifiers[i]}: {select_source}', xaxis_title='Date', yaxis_title=selected_props[i], height=plot_height * num_groups * 100)
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with tab2:
+        st.write('P10 rankings')
+        st.write(p10_rankings)
+        st.write('P50 rankings')
+        st.write(p50_rankings)
+        st.write('P90 rankings')
+        st.write(p90_rankings)    
+    
+        st.write('Base data')
+        st.dataframe(df_base)
+        st.write('Project data')
+        st.dataframe(df_project)        
+        st.write('Incremental data')
+        st.dataframe(df_incremental)
+
     # Retrieve base data from session state
     data_dict_base = st.session_state['data_dict_base']
     data_dict_project = st.session_state['data_dict_project']
