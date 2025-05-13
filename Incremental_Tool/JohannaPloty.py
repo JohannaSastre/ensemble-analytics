@@ -1020,12 +1020,11 @@ elif selected == "Waterfall":
 
         
 #################################################################### CASE SELECTION        #########################################
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
-import datetime as dt
-import numpy as np
-
+    import streamlit as st
+    import pandas as pd
+    import plotly.graph_objects as go
+    import datetime as dt
+    import numpy as np
 
 elif selected == "Case selection":
     data_dict_base = st.session_state['data_dict_base']
@@ -1099,7 +1098,7 @@ elif selected == "Case selection":
     # Plotly chart
     fig = make_subplots(rows=num_groups, cols=2, vertical_spacing=0.12,
                         subplot_titles=[f"{selected_identifiers[i]}: {selected_props[i]} - Time Series" for i in range(num_groups)] +
-                                       [f"{selected_identifiers[i]}: {selected_props[i]} - Cumulative Probability" for i in range(num_groups)])
+                                        [f"{selected_identifiers[i]}: {selected_props[i]} - Cumulative Probability" for i in range(num_groups)])
 
     for i in range(num_groups):
         df, df_cum = dfs[i], dfs_cumprob[i]
@@ -1108,18 +1107,18 @@ elif selected == "Case selection":
         # Time series
         for col in df.columns:
             fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col,
-                                     line=dict(width=1), opacity=0.5), row=i + 1, col=1)
+                                        line=dict(width=1), opacity=0.5), row=i + 1, col=1)
 
         fig.add_vline(x=date, line_dash='dash', line_color='black', row=i + 1, col=1)
 
         # Cumulative plot
         fig.add_trace(go.Scatter(x=df_cum['value'], y=df_cum['cum_prob'], mode='markers',
-                                 name='CDF', marker=dict(color='grey')), row=i + 1, col=2)
+                                    name='CDF', marker=dict(color='grey')), row=i + 1, col=2)
 
         for case, color in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red']):
             fig.add_trace(go.Scatter(x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
-                                     mode='markers+text', name=case,
-                                     text=[case], marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
+                                        mode='markers+text', name=case,
+                                        text=[case], marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
 
     fig.update_layout(height=num_groups * 400, showlegend=False, title="Case Selection Overview", template="plotly_white")
     st.plotly_chart(fig, use_container_width=True)
