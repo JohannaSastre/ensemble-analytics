@@ -21,6 +21,7 @@ from matplotlib.gridspec import GridSpec
 import plotly.graph_objects as go
 import numpy as np
 import pandas as pd
+from plotly.subplots import make_subplots  # Ensure this is included
 
 import sys
 sys.path.append("style.py")
@@ -1101,7 +1102,7 @@ elif selected == "Case selection":
         cols=2,
         subplot_titles=[f"{selected_props[i]} - {selected_identifiers[i]}" for i in range(num_groups)] * 2,
         shared_xaxes=False,
-        vertical_spacing=0.08,
+        vertical_spacing=0.1,
         horizontal_spacing=0.1
     )
 
@@ -1128,7 +1129,14 @@ elif selected == "Case selection":
                                      mode='markers+text', name=case,
                                      text=[case], marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
 
-    fig.update_layout(height=num_groups * 500, title="Case Selection Overview", template="plotly_white", showlegend=False)
+        fig.update_layout(
+        height=400 * num_groups,
+        title_text="Case Selection Results",
+        showlegend=False,
+        template="plotly_white"
+    )
+
+    # Display in Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("P10 / P50 / P90 Rankings"):
