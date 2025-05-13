@@ -1111,7 +1111,6 @@ elif selected == "Case selection":
         df_cum = dfs_cumprob[i]
         date = selected_dates_objects[i]
 
-        # Time series
         for col in df.columns:
             if col == p90_case:
                 color = 'green'
@@ -1142,41 +1141,26 @@ elif selected == "Case selection":
                                  mode='lines', line=dict(color='black', dash='dash'),
                                  name='Selected Date', showlegend=False), row=i + 1, col=1)
 
-        # Cumulative plot
         fig.add_trace(go.Scatter(x=df_cum['value'], y=df_cum['cum_prob'], mode='markers',
                                  name='CDF', marker=dict(color='grey')), row=i + 1, col=2)
 
-        for case, color in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red']):
+        for case, color, label in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red'], ['P90', 'P50', 'P10']):
             fig.add_trace(go.Scatter(x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
-                                     mode='markers+text', name=case,
-                                     text=[case], marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
+                                     mode='markers+text', name=label,
+                                     text=[label], textposition="top right",
+                                     marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
 
-        fig.update_layout(
+    fig.update_layout(
         height=400 * num_groups,
         title_text="Case Selection Results",
         showlegend=False,
         template="plotly_white"
     )
 
-    fig.add_trace(go.Scatter(
-        x=[None], y=[None],
-        mode='markers',
-        marker=dict(size=12, color='green', line=dict(width=2)),
-        name='P90 Case'
-    ))
-    fig.add_trace(go.Scatter(
-        x=[None], y=[None],
-        mode='markers',
-        marker=dict(size=12, color='blue', line=dict(width=2)),
-        name='P50 Case'
-    ))
-    fig.add_trace(go.Scatter(
-        x=[None], y=[None],
-        mode='markers',
-        marker=dict(size=12, color='red', line=dict(width=2)),
-        name='P10 Case'
-    ))
-    # Display in Streamlit
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(size=12, color='green'), name='P90 Case'))
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(size=12, color='blue'), name='P50 Case'))
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(size=12, color='red'), name='P10 Case'))
+
     st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("P10 / P50 / P90 Rankings"):
