@@ -504,7 +504,7 @@ elif selected == "Analysis":
     
     
     ########### plot data ANALYSIS UPDATED###############################################################################################
-    import plotly.graph_objects as go
+     import plotly.graph_objects as go
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
     import numpy as np
@@ -513,10 +513,7 @@ elif selected == "Analysis":
     fig = make_subplots(rows=2, cols=2,
                         subplot_titles=("Base/Project Time Series", "Base/Project Histogram",
                                         "Incremental Time Series", "Incremental Histogram + S-Curve"),
-                        specs=[[{}, {}], [{}, {"secondary_y": True}]],
-                            horizontal_spacing=0.02,  # default is 0.2, reduce this
-                            vertical_spacing=0.02     # default is 0.3, reduce this
-        )
+                        specs=[[{}, {}], [{}, {"secondary_y": True}]])
 
     # ---- Bins for consistent histograms
     bins = np.histogram_bin_edges(np.concatenate([base_slice, project_slice]), bins=30)
@@ -594,29 +591,21 @@ elif selected == "Analysis":
 
     # ---- Layout
     fig.update_layout(
-        height=plot_height * 400,  # Make this bigger if more traces
-        width=None,  # Let Streamlit fill width dynamically
-        autosize=True,
+        height=plot_height * 150,
         title=dict(
             text=f"{selected_identifier}: {selected_property}",
-            font=dict(size=20),
+            font=dict(size=25),  # Title font
             x=0.0,
             xanchor='left'
         ),
-        margin=dict(t=50, b=40, l=60, r=20),
-        template='plotly_white',
-        font=dict(size=12),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        ),
-    )
+        showlegend=True,
+        template="plotly_white",
+        font=dict(size=30),  # Global font size (axes, ticks, legend)
+        barmode='overlay'
+   )
 
     # ---- Show in Streamlit
-    st.plotly_chart(fig, use_container_width=False)
+    st.plotly_chart(fig, use_container_width=True)
 
          
             
