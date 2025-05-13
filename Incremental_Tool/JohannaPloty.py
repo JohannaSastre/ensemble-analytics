@@ -1168,14 +1168,14 @@ elif selected == "Case selection":
         fig.add_trace(go.Scatter(x=df_cum['value'], y=df_cum['cum_prob'], mode='markers',
                                  name='CDF', marker=dict(color='grey')), row=i + 1, col=2)
 
-        for case, color in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red']):
-            fig.add_trace(go.Scatter(
-                x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
-                mode='markers',
-                name=case,  # ✅ case name will appear in the legend
-                marker=dict(size=12, color=color, symbol='triangle-up', line=dict(width=2)),
-                showlegend=True
-            ), row=i + 1, col=2)
+    for case, color in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red']):
+        fig.add_trace(go.Scatter(
+            x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
+            mode='markers',
+            name=case,  # ✅ case name will appear in the legend
+            marker=dict(size=12, color=color, symbol='triangle-up', line=dict(width=2)),
+            showlegend=True
+        ), row=i + 1, col=2)
 
     fig.update_layout(
         height=400 * num_groups,
