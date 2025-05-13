@@ -1120,46 +1120,27 @@ elif selected == "Case selection":
 
         for col in df.columns:
             if col == p90_case:
-                color = 'green'
-                width = 3
-                opacity = 1
+                color = 'green'; width = 3; opacity = 1
+                show = True
             elif col == p50_case:
-                color = 'blue'
-                width = 3
-                opacity = 1
+                color = 'blue'; width = 3; opacity = 1
+                show = True
             elif col == p10_case:
-                color = 'red'
-                width = 3
-                opacity = 1
+                color = 'red'; width = 3; opacity = 1
+                show = True
             else:
-                color = 'grey'
-                width = 1
-                opacity = 0.5
+                color = 'lightgrey'; width = 1; opacity = 0.4
+                show = False
 
-            if col in [p10_case, p50_case, p90_case]:
-                label = (
-                    "P10" if col == p10_case else
-                    "P50" if col == p50_case else
-                    "P90"
-                )
-                fig.add_trace(go.Scatter(
-                    x=df.index, y=df[col],
-                    mode='lines+text',
-                    name=label,
-                    line=dict(color=color, width=width),
-                    opacity=opacity,
-                    text=[label] + [''] * (len(df) - 1),
-                    textposition='top right',
-                    textfont=dict(size=14)
-                ), row=i + 1, col=1)
-            else:
-                fig.add_trace(go.Scatter(
-                    x=df.index, y=df[col],
-                    mode='lines',
-                    name=col,
-                    line=dict(color=color, width=width),
-                    opacity=opacity
-                ), row=i + 1, col=1)
+            fig.add_trace(go.Scatter(
+                x=df.index, y=df[col],
+                mode='lines',
+                name=col,  # ✅ shows actual case name in legend
+                showlegend=show,
+                line=dict(color=color, width=width),
+                opacity=opacity
+            ), row=i + 1, col=1)
+
 
         fig.add_trace(go.Scatter(x=[date, date], y=[df.min().min(), df.max().max()],
                                  mode='lines', line=dict(color='black', dash='dash'),
