@@ -1136,13 +1136,30 @@ elif selected == "Case selection":
                 width = 1
                 opacity = 0.5
 
-            fig.add_trace(go.Scatter(
-                x=df.index, y=df[col],
-                mode='lines',
-                name=col,
-                line=dict(color=color, width=width),
-                opacity=opacity
-            ), row=i + 1, col=1)
+            if col in [p10_case, p50_case, p90_case]:
+                label = (
+                    "P10" if col == p10_case else
+                    "P50" if col == p50_case else
+                    "P90"
+                )
+                fig.add_trace(go.Scatter(
+                    x=df.index, y=df[col],
+                    mode='lines+text',
+                    name=label,
+                    line=dict(color=color, width=width),
+                    opacity=opacity,
+                    text=[label] + [''] * (len(df) - 1),
+                    textposition='top right',
+                    textfont=dict(size=14)
+                ), row=i + 1, col=1)
+            else:
+                fig.add_trace(go.Scatter(
+                    x=df.index, y=df[col],
+                    mode='lines',
+                    name=col,
+                    line=dict(color=color, width=width),
+                    opacity=opacity
+                ), row=i + 1, col=1)
 
         fig.add_trace(go.Scatter(x=[date, date], y=[df.min().min(), df.max().max()],
                                  mode='lines', line=dict(color='black', dash='dash'),
