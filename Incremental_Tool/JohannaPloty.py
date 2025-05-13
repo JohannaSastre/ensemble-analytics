@@ -1048,8 +1048,8 @@ elif selected == "Case selection":
 
     for i in range(num_groups):
         with st.sidebar.expander(f"Property {i+1}", expanded=True):
-            cat = st.selectbox(f"Select Category {i+1}", ['Field', 'Region', 'Well'])
-            prop = st.selectbox(f"Select Property {i+1}", props)
+            cat = st.selectbox(f"Select Category {i+1}", ['Field', 'Region', 'Well'], key=f"cat_{i}")
+            prop = st.selectbox(f"Select Property {i+1}", props, key=f"prop_{i}")
             selected_props.append(prop)
 
             if cat == 'Field':
@@ -1057,12 +1057,12 @@ elif selected == "Case selection":
                 df_project = data_dict_project['Field'][prop].apply(pd.to_numeric, errors='coerce')
                 selected_identifiers.append('Field')
             elif cat == 'Region':
-                region = st.selectbox(f"Select Region {i+1}", regions)
+                region = st.selectbox(f"Select Region {i+1}", regions, key=f"region_{i}")
                 df_base = data_dict_base['Regions'][region][prop].apply(pd.to_numeric, errors='coerce')
                 df_project = data_dict_project['Regions'][region][prop].apply(pd.to_numeric, errors='coerce')
                 selected_identifiers.append(region)
             else:
-                well = st.selectbox(f"Select Well {i+1}", wells)
+                well = st.selectbox(f"Select Well {i+1}", wells, key=f"well_{i}")
                 df_base = data_dict_base['Wells'][well][prop].apply(pd.to_numeric, errors='coerce')
                 df_project = data_dict_project['Wells'][well][prop].apply(pd.to_numeric, errors='coerce')
                 selected_identifiers.append(well)
@@ -1072,8 +1072,8 @@ elif selected == "Case selection":
             df.index = dates
             dfs.append(df)
 
-            selected_date_str = st.select_slider(f"Select Date Slice {i+1}", options=[d.strftime('%Y-%m-%d') for d in dates])
-            selected_date = dt.datetime.strptime(selected_date_str, "%Y-%m-%d")
+            selected_date_str = st.select_slider(f"Select Date Slice {i+1}", options=[d.strftime('%Y-%m-%d') for d in dates], key=f"date_{i}")
+            selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d")
             selected_dates_objects.append(selected_date)
 
             series = df.loc[selected_date]
@@ -1081,65 +1081,109 @@ elif selected == "Case selection":
             df_cum['cum_prob'] = np.linspace(1, 0, len(df_cum))
             dfs_cumprob.append(df_cum)
 
-            weights.append(st.number_input(f"Weight {i+1}", 0, 100, 1))
+            weights.append(st.number_input(f"Weight {i+1}", 0, 100, 1, key=f"weight_{i}"))
 
     # Ranking
-    p10_cases = []
-    p50_cases = []
-    p90_cases = []
-
+    p10, p50, p90 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
     for i, df_cum in enumerate(dfs_cumprob):
-        temp_p10 = df_cum.copy()
-        temp_p50 = df_cum.copy()
-        temp_p90 = df_cum.copy()
+        for idx in df_cum.index:
+            p10.loc[idx, f"{i}_{selected_props[i]}"] = abs(df_cum.loc[idx, 'cum_prob'] - 0.9) * weights[i]
+            p50.loc[idx, f"{i}_{selected_props[i]}"] = abs(df_cum.loc[idx, 'cum_prob'] - 0.5) * weights[i]
+            p90.loc[idx, f"{i}_{selected_props[i]}"] = abs(df_cum.loc[idx, 'cum_prob'] - 0.1) * weights[i]
 
-        temp_p10['score'] = abs(temp_p10['cum_prob'] - 0.9) * weights[i]
-        temp_p50['score'] = abs(temp_p50['cum_prob'] - 0.5) * weights[i]
-        temp_p90['score'] = abs(temp_p90['cum_prob'] - 0.1) * weights[i]
+    p10['sum'] = p10.sum(axis=1)
+    p50['sum'] = p50.sum(axis=1)
+    p90['sum'] = p90.sum(axis=1)
 
-        p10_cases.append(temp_p10.sort_values('score').index[0])
-        p50_cases.append(temp_p50.sort_values('score').index[0])
-        p90_cases.append(temp_p90.sort_values('score').index[0])
+    p10_case, p50_case, p90_case = p10.sort_values('sum').index[0], p50.sort_values('sum').index[0], p90.sort_values('sum').index[0]
 
-    # Plotly chart
     fig = make_subplots(
         rows=num_groups,
         cols=2,
         subplot_titles=[f"{selected_props[i]} - {selected_identifiers[i]}" for i in range(num_groups)] * 2,
         shared_xaxes=False,
         vertical_spacing=0.1,
-        horizontal_spacing=0.05
+        horizontal_spacing=0.1
     )
 
     for i in range(num_groups):
-        df, df_cum = dfs[i], dfs_cumprob[i]
+        df = dfs[i]
+        df_cum = dfs_cumprob[i]
         date = selected_dates_objects[i]
 
         # Time series
         for col in df.columns:
-            fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col,
-                                     line=dict(width=1), opacity=0.5), row=i + 1, col=1)
+            if col == p90_case:
+                color = 'green'
+                width = 3
+                opacity = 1
+            elif col == p50_case:
+                color = 'blue'
+                width = 3
+                opacity = 1
+            elif col == p10_case:
+                color = 'red'
+                width = 3
+                opacity = 1
+            else:
+                color = 'grey'
+                width = 1
+                opacity = 0.5
 
-        fig.add_vline(x=date, line_dash='dash', line_color='black', row=i + 1, col=1)
+            fig.add_trace(go.Scatter(
+                x=df.index, y=df[col],
+                mode='lines',
+                name=col,
+                line=dict(color=color, width=width),
+                opacity=opacity
+            ), row=i + 1, col=1)
+
+        fig.add_trace(go.Scatter(x=[date, date], y=[df.min().min(), df.max().max()],
+                                 mode='lines', line=dict(color='black', dash='dash'),
+                                 name='Selected Date', showlegend=False), row=i + 1, col=1)
 
         # Cumulative plot
         fig.add_trace(go.Scatter(x=df_cum['value'], y=df_cum['cum_prob'], mode='markers',
                                  name='CDF', marker=dict(color='grey')), row=i + 1, col=2)
 
-        highlight_cases = [(p90_cases[i], 'green'), (p50_cases[i], 'blue'), (p10_cases[i], 'red')]
-        for case, color in highlight_cases:
-            if case in df_cum.index:
-                fig.add_trace(go.Scatter(x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
-                                         mode='markers+text', text=[case], name=case,
-                                         marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
+        for case, color in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red']):
+            fig.add_trace(go.Scatter(x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
+                                     mode='markers+text', name=case,
+                                     text=[case], marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
 
-    fig.update_layout(height=num_groups * 400, showlegend=False, title="Case Selection Overview", template="plotly_white")
+        fig.update_layout(
+        height=400 * num_groups,
+        title_text="Case Selection Results",
+        showlegend=False,
+        template="plotly_white"
+    )
+
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None],
+        mode='markers',
+        marker=dict(size=12, color='green', line=dict(width=2)),
+        name='P90 Case'
+    ))
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None],
+        mode='markers',
+        marker=dict(size=12, color='blue', line=dict(width=2)),
+        name='P50 Case'
+    ))
+    fig.add_trace(go.Scatter(
+        x=[None], y=[None],
+        mode='markers',
+        marker=dict(size=12, color='red', line=dict(width=2)),
+        name='P10 Case'
+    ))
+    # Display in Streamlit
     st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("P10 / P50 / P90 Rankings"):
-        st.write("P10 Cases")
-        st.write(p10_cases)
-        st.write("P50 Cases")
-        st.write(p50_cases)
-        st.write("P90 Cases")
-        st.write(p90_cases)
+        st.subheader("P10 Cases")
+        st.dataframe(p10.sort_values("sum"))
+        st.subheader("P50 Cases")
+        st.dataframe(p50.sort_values("sum"))
+        st.subheader("P90 Cases")
+        st.dataframe(p90.sort_values("sum"))
+
