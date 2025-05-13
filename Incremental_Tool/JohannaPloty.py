@@ -590,7 +590,7 @@ elif selected == "Analysis":
 
     # ---- Layout
     fig.update_layout(
-        height=plot_height * 150,
+        height=plot_height * 120,
         title=dict(
             text=f"{selected_identifier}: {selected_property}",
             font=dict(size=25),  # Title font
@@ -880,7 +880,7 @@ elif selected == "Boxplots":
                     ),
                     tickfont=dict(size=14)
                 ),
-                height=plot_height * 150,
+                height=plot_height * 120,
                 template="plotly_white"
             )
 
