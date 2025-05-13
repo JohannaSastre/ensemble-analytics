@@ -1027,6 +1027,7 @@ elif selected == "Waterfall":
     import numpy as np
     from plotly.subplots import make_subplots
 
+
 elif selected == "Case selection":
     data_dict_base = st.session_state['data_dict_base']
     data_dict_project = st.session_state['data_dict_project']
@@ -1072,7 +1073,7 @@ elif selected == "Case selection":
             dfs.append(df)
 
             selected_date_str = st.select_slider(f"Select Date Slice {i+1}", options=[d.strftime('%Y-%m-%d') for d in dates])
-            selected_date = datetime.strptime(selected_date_str, "%Y-%m-%d")
+            selected_date = dt.datetime.strptime(selected_date_str, "%Y-%m-%d")
             selected_dates_objects.append(selected_date)
 
             series = df.loc[selected_date]
@@ -1094,40 +1095,51 @@ elif selected == "Case selection":
     p50['sum'] = p50.sum(axis=1)
     p90['sum'] = p90.sum(axis=1)
 
-    p10_case, p50_case, p90_case = p10.sort_values('sum').index[0], p50.sort_values('sum').index[0], p90.sort_values('sum').index[0]
+    p10_case = p10.sort_values('sum').index[0]
+    p50_case = p50.sort_values('sum').index[0]
+    p90_case = p90.sort_values('sum').index[0]
 
-    # Plotly chart
-    fig = make_subplots(
-        rows=num_groups,
-        cols=2,
-        subplot_titles=[f"{selected_props[i]}" for i in range(num_groups)] * 2,
-        shared_xaxes=False,
-        vertical_spacing=0.1,
-        horizontal_spacing=0.05
-    )
+    # Tabs for plotting and data
+    tab1, tab2 = st.tabs(["Plots", "Data"])
 
-    for i in range(num_groups):
-        df, df_cum = dfs[i], dfs_cumprob[i]
-        date = selected_dates_objects[i]
+    with tab1:
+        fig = make_subplots(
+            rows=num_groups,
+            cols=2,
+            subplot_titles=[f"{selected_props[i]} - {selected_identifiers[i]}" for i in range(num_groups)] * 2,
+            shared_xaxes=False,
+            vertical_spacing=0.15,
+            horizontal_spacing=0.05
+        )
 
-        # Time series
-        for col in df.columns:
-            fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col,
-                                        line=dict(width=1), opacity=0.5), row=i + 1, col=1)
+        for i in range(num_groups):
+            df, df_cum = dfs[i], dfs_cumprob[i]
+            date = selected_dates_objects[i]
 
-        fig.add_vline(x=date, line_dash='dash', line_color='black', row=i + 1, col=1)
+            # Time series
+            for col in df.columns:
+                fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=f"{col} - {selected_props[i]}",
+                                         line=dict(width=1), opacity=0.5), row=i + 1, col=1)
 
-        # Cumulative plot
-        fig.add_trace(go.Scatter(x=df_cum['value'], y=df_cum['cum_prob'], mode='markers',
-                                    name='CDF', marker=dict(color='grey')), row=i + 1, col=2)
+            fig.add_shape(type="line", x0=date, x1=date, y0=0, y1=1, line=dict(color="black", dash="dash"),
+                          xref=f"x{i*2+1}", yref="paper", row=i + 1, col=1)
 
-        for case, color in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red']):
-            fig.add_trace(go.Scatter(x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
-                                        mode='markers+text', name=case,
-                                        text=[case], marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
+            # Cumulative probability
+            fig.add_trace(go.Scatter(x=df_cum['value'], y=df_cum['cum_prob'], mode='markers',
+                                     name='CDF', marker=dict(color='grey')), row=i + 1, col=2)
 
-    fig.update_layout(height=num_groups * 400, showlegend=False, title="Case Selection Overview", template="plotly_white")
-    st.plotly_chart(fig, use_container_width=True)
+            for case, color in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red']):
+                if case in df_cum.index:
+                    fig.add_trace(go.Scatter(x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
+                                             mode='markers+text', name=case, text=[case],
+                                             marker=dict(size=12, color=color, line=dict(width=2))), row=i + 1, col=2)
+
+        fig.update_layout(height=num_groups * plot_height * 100,
+                          showlegend=True,
+                          title="Case Selection Overview",
+                          template="plotly_white")
+
+        st.plotly_chart(fig, use_container_width=True)
 
     with tab2:
         st.subheader("P10 / P50 / P90 Rankings")
