@@ -1115,7 +1115,10 @@ if selected == "Case selection":
                     name=f'{selected_props[i]} - {percentile*100:.0f}%'
                 ))
 
-            fig.add_vline(x=selected_dates_objects[i], line_dash='dash', line_color='black')
+            fig.add_vline(
+                x=selected_dates_objects[i],
+                line=dict(color='black', dash='dash')
+            )
 
         fig.update_layout(
             height=plot_height * 200,
