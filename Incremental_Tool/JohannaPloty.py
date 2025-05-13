@@ -1025,6 +1025,7 @@ elif selected == "Waterfall":
     import plotly.graph_objects as go
     import datetime as dt
     import numpy as np
+    from plotly.subplots import make_subplots
 
 elif selected == "Case selection":
     data_dict_base = st.session_state['data_dict_base']
@@ -1096,9 +1097,14 @@ elif selected == "Case selection":
     p10_case, p50_case, p90_case = p10.sort_values('sum').index[0], p50.sort_values('sum').index[0], p90.sort_values('sum').index[0]
 
     # Plotly chart
-    fig = make_subplots(rows=num_groups, cols=2, vertical_spacing=0.12,
-                        subplot_titles=[f"{selected_identifiers[i]}: {selected_props[i]} - Time Series" for i in range(num_groups)] +
-                                        [f"{selected_identifiers[i]}: {selected_props[i]} - Cumulative Probability" for i in range(num_groups)])
+    fig = make_subplots(
+        rows=num_groups,
+        cols=2,
+        subplot_titles=[f"{selected_props[i]}" for i in range(num_groups)] * 2,
+        shared_xaxes=False,
+        vertical_spacing=0.1,
+        horizontal_spacing=0.05
+    )
 
     for i in range(num_groups):
         df, df_cum = dfs[i], dfs_cumprob[i]
