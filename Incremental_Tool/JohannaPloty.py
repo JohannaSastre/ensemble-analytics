@@ -1161,7 +1161,7 @@ elif selected == "Case selection":
     fig.update_layout(
         height=400 * num_groups,
         title_text="Case Selection Results",
-        showlegend=False,
+        showlegend=True,
         template="plotly_white"
     )
 
