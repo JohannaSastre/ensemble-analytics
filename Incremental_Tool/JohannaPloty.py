@@ -1165,7 +1165,7 @@ elif selected == "Case selection":
             marker=dict(color='lightblue'),
             opacity=0.4,
             showlegend=(i == 0)
-        ), 
+        ),  row=i + 1, col=2, secondary_y=True)
        
         # CDF plot
         fig.add_trace(go.Scatter(
@@ -1175,9 +1175,9 @@ elif selected == "Case selection":
             name='CDF',
             marker=dict(color='grey'),
             showlegend=(i == 0)  # Show legend only once
-        ), row=i + 1, col=2)
+        ), row=i + 1, col=2, secondary_y=False)
 
-       row=i + 1, col=2, secondary_y=True)
+      
 
         # Triangle markers for P90, P50, P10
         for case, color, label in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red'], ['P90 Case', 'P50 Case', 'P10 Case']):
