@@ -1176,11 +1176,8 @@ elif selected == "Case selection":
             marker=dict(color='grey'),
             showlegend=(i == 0)  # Show legend only once
         ), row=i + 1, col=2, secondary_y=False)
-        
-        for i in range(num_groups):
-            fig.update_yaxes(showgrid=True, row=i+1, col=2, secondary_y=False)  # Keep gridlines for CDF
-            fig.update_yaxes(showgrid=False, row=i+1, col=2, secondary_y=True)  # Turn OFF for histogram
-      
+   
+            
 
         # Triangle markers for P90, P50, P10
         for case, color, label in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red'], ['P90 Case', 'P50 Case', 'P10 Case']):
@@ -1195,10 +1192,12 @@ elif selected == "Case selection":
                 showlegend=(i == 0)  # Legend shown once
             ), row=i + 1, col=2, secondary_y=False)
 
+       
     for i in range(num_groups):
         fig.update_yaxes(title_text="Cumulative Probability", row=i+1, col=2, secondary_y=False)
         fig.update_yaxes(title_text="Count (Histogram)", row=i+1, col=2, secondary_y=True)
-
+        fig.update_yaxes(showgrid=True, row=i+1, col=2, secondary_y=False)  # Keep gridlines for CDF
+        fig.update_yaxes(showgrid=False, row=i+1, col=2, secondary_y=True)  # Turn OFF for histogram
 
     fig.update_layout(
         height=400 * num_groups,
