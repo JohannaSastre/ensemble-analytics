@@ -1157,7 +1157,16 @@ elif selected == "Case selection":
             name='Selected Date',
             showlegend=(i == 0)  # Only show in first subplot
         ), row=i + 1, col=1)
-
+       
+       # Histogram
+        fig.add_trace(go.Histogram(
+            x=df_cum['value'],
+            name='Histogram',
+            marker=dict(color='lightblue'),
+            opacity=0.4,
+            showlegend=(i == 0)
+        ), 
+       
         # CDF plot
         fig.add_trace(go.Scatter(
             x=df_cum['value'],
@@ -1168,14 +1177,7 @@ elif selected == "Case selection":
             showlegend=(i == 0)  # Show legend only once
         ), row=i + 1, col=2)
 
-        # Histogram
-        fig.add_trace(go.Histogram(
-            x=df_cum['value'],
-            name='Histogram',
-            marker=dict(color='lightblue'),
-            opacity=0.4,
-            showlegend=(i == 0)
-        ), row=i + 1, col=2, secondary_y=True)
+       row=i + 1, col=2, secondary_y=True)
 
         # Triangle markers for P90, P50, P10
         for case, color, label in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red'], ['P90 Case', 'P50 Case', 'P10 Case']):
