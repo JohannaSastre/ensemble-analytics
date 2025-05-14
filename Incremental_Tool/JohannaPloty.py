@@ -1176,7 +1176,10 @@ elif selected == "Case selection":
             marker=dict(color='grey'),
             showlegend=(i == 0)  # Show legend only once
         ), row=i + 1, col=2, secondary_y=False)
-
+        
+        for i in range(num_groups):
+            fig.update_yaxes(showgrid=True, row=i+1, col=2, secondary_y=False)  # Keep gridlines for CDF
+            fig.update_yaxes(showgrid=False, row=i+1, col=2, secondary_y=True)  # Turn OFF for histogram
       
 
         # Triangle markers for P90, P50, P10
