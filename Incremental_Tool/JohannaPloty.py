@@ -1163,7 +1163,7 @@ elif selected == "Case selection":
             x=df_cum['value'],
             name='Histogram',
             marker=dict(color='lightblue'),
-            opacity=0.4,
+            opacity=0.2,
             showlegend=(i == 0)
         ),  row=i + 1, col=2, secondary_y=True)
        
@@ -1188,9 +1188,10 @@ elif selected == "Case selection":
                 name=label,
                 text=[label],
                 textposition="top right",
-                marker=dict(size=12, color=color, symbol='triangle-up', line=dict(width=2)),
+                marker=dict(size=15, color=color, symbol='triangle-up', line=dict(width=2)),
                 showlegend=(i == 0)  # Legend shown once
-            ), row=i + 1, col=2)
+            ), row=i + 1, col=2, secondary_y=False)
+
     for i in range(num_groups):
         fig.update_yaxes(title_text="Cumulative Probability", row=i+1, col=2, secondary_y=False)
         fig.update_yaxes(title_text="Count (Histogram)", row=i+1, col=2, secondary_y=True)
