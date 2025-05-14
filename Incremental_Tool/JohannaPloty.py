@@ -1119,8 +1119,10 @@ elif selected == "Case selection":
                         for i in range(num_groups) for j in range(2)],
         shared_xaxes=False,
         vertical_spacing=0.1,
-        horizontal_spacing=0.1
-    )
+        horizontal_spacing=0.1,
+        specs=[[{}, {"secondary_y": True}] for _ in range(num_groups)]
+     )
+    
 
     for i in range(num_groups):
         df = dfs[i]
@@ -1173,7 +1175,7 @@ elif selected == "Case selection":
             marker=dict(color='lightblue'),
             opacity=0.4,
             showlegend=(i == 0)
-        ), row=i + 1, col=2)
+        ), row=i + 1, col=2, secondary_y=True)
 
         # Triangle markers for P90, P50, P10
         for case, color, label in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red'], ['P90 Case', 'P50 Case', 'P10 Case']):
@@ -1187,6 +1189,10 @@ elif selected == "Case selection":
                 marker=dict(size=12, color=color, symbol='triangle-up', line=dict(width=2)),
                 showlegend=(i == 0)  # Legend shown once
             ), row=i + 1, col=2)
+    for i in range(num_groups):
+        fig.update_yaxes(title_text="Cumulative Probability", row=i+1, col=2, secondary_y=False)
+        fig.update_yaxes(title_text="Count (Histogram)", row=i+1, col=2, secondary_y=True)
+
 
     fig.update_layout(
         height=400 * num_groups,
