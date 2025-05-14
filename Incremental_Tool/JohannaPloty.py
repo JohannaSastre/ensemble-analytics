@@ -1104,14 +1104,22 @@ elif selected == "Case selection":
 
     p10_case, p50_case, p90_case = p10.sort_values('sum').index[0], p50.sort_values('sum').index[0], p90.sort_values('sum').index[0]
 
+    # Define subplot titles in the correct order (left to right, top to bottom)
+    subplot_titles = []
+    for i in range(num_groups):
+        subplot_titles.append(f"{selected_props[i]} - {selected_identifiers[i]} (Time Series)")
+        subplot_titles.append(f"{selected_props[i]} - {selected_identifiers[i]} (S-Curve)")
+
+    # Create the subplot figure
     fig = make_subplots(
         rows=num_groups,
         cols=2,
-        subplot_titles=[f"{selected_props[i]} - {selected_identifiers[i]}" for i in range(num_groups)] * 2,
+        subplot_titles=subplot_titles,
         shared_xaxes=False,
         vertical_spacing=0.1,
         horizontal_spacing=0.1
     )
+
 
     for i in range(num_groups):
         df = dfs[i]
