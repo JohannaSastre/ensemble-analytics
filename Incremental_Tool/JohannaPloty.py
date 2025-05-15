@@ -1234,27 +1234,35 @@ elif selected == "Case selection":
         year_range = st.slider("Year range", min_value=min_year, max_value=max_year, value=(min_year, max_year))
 
         import io
+
         # Compute yearly profiles for P10/P50/P90
-        yearly_profiles = {}
+        profile_dataframes = {}
+        final_df = pd.DataFrame()
+
         for label, case in zip(['P10', 'P50', 'P90'], [p10_case, p50_case, p90_case]):
             if case in df.columns:
                 yearly_series = df[case].resample('Y').last()
-                yearly_profiles[label] = yearly_series
+                yearly_series.name = label
+                profile_dataframes[label] = yearly_series
+                final_df[label] = yearly_series
 
-        # Combine into one DataFrame
-        df_yearly = pd.DataFrame(yearly_profiles)
-        df_yearly.index = df_yearly.index.year
-        df_yearly = df_yearly.loc[year_range[0]:year_range[1]]
+        # Format index as years
+        final_df.index = final_df.index.year
 
+        # Filter to selected year range
+        final_df = final_df.loc[year_range[0]:year_range[1]]
+
+        # ---- Display table ----
         st.write(f"**{selected_prop} - {selected_identifier}**")
-        st.dataframe(df_yearly, use_container_width=True)
+        st.dataframe(final_df, use_container_width=True)
 
- 
         # ---- Create Excel file in memory ----
         excel_buffer = io.BytesIO()
         with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-            for label, df_yearly in profile_dataframes.items():  # Assuming you named the combined dict `profile_dataframes`
-                df_yearly.to_excel(writer, sheet_name=label)
+            for label, yearly_series in profile_dataframes.items():
+                df_out = yearly_series.to_frame(name=label)
+                df_out.index.name = "Year"
+                df_out.to_excel(writer, sheet_name=label)
 
         # ---- Reset buffer position ----
         excel_buffer.seek(0)
@@ -1266,17 +1274,5 @@ elif selected == "Case selection":
             file_name="Yearly_Profiles.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
-        st.dataframe(final_df, use_container_width=True)
-
-        # Now define profile_dataframes and download
-        profile_dataframes = {
-            "P10": final_df[["P10"]],
-            "P50": final_df[["P50"]],
-            "P90": final_df[["P90"]]
-        }
-
-        # Add export button
-...
 
 
