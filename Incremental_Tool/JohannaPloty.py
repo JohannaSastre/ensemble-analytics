@@ -1236,7 +1236,7 @@ elif selected == "Case selection":
         yearly_profiles = {}
         for label, case in zip(['P10', 'P50', 'P90'], [p10_case, p50_case, p90_case]):
             if case in df.columns:
-                yearly_series = df[case].resample('Y').last().diff().fillna(0)
+                yearly_series = df[case].resample('Y').last()
                 yearly_profiles[label] = yearly_series
 
         # Combine into one DataFrame
