@@ -1250,11 +1250,3 @@ elif selected == "Case selection":
 
 
 
-    with st.expander("P10 / P50 / P90 Rankings"):
-        st.subheader("P10 Cases")
-        st.dataframe(p10.sort_values("sum"))
-        st.subheader("P50 Cases")
-        st.dataframe(p50.sort_values("sum"))
-        st.subheader("P90 Cases")
-        st.dataframe(p90.sort_values("sum"))
-
