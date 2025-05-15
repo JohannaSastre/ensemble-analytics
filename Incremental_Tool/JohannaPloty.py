@@ -1233,6 +1233,7 @@ elif selected == "Case selection":
         max_year = df.index.max().year
         year_range = st.slider("Year range", min_value=min_year, max_value=max_year, value=(min_year, max_year))
 
+        import io
         # Compute yearly profiles for P10/P50/P90
         yearly_profiles = {}
         for label, case in zip(['P10', 'P50', 'P90'], [p10_case, p50_case, p90_case]):
