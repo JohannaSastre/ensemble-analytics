@@ -1104,6 +1104,23 @@ elif selected == "Case selection":
 
     p10_case, p50_case, p90_case = p10.sort_values('sum').index[0], p50.sort_values('sum').index[0], p90.sort_values('sum').index[0]
 
+    # Show yearly profile per selected case
+    with st.tabs(["P10 Yearly Profile", "P50 Yearly Profile", "P90 Yearly Profile"]) as (tab_p10, tab_p50, tab_p90):
+        for case_name, case_id, tab in zip(["P10", "P50", "P90"], [p10_case, p50_case, p90_case], [tab_p10, tab_p50, tab_p90]):
+            with tab:
+                st.subheader(f"{case_name} Yearly Profile: {case_id}")
+                for i in range(num_groups):
+                    df = dfs[i]
+                    prop = selected_props[i]
+                    identifier = selected_identifiers[i]
+
+                    if case_id in df.columns:
+                        yearly = df[case_id].resample('Y').last().diff().fillna(0)
+                        df_yearly = yearly.to_frame(name=f"{prop} - {identifier}")
+                        df_yearly.index = df_yearly.index.year
+                        st.write(f"**{prop} - {identifier}**")
+                        st.dataframe(df_yearly)
+
     # Define subplot titles in the correct order (left to right, top to bottom)
     subplot_titles = []
     for i in range(num_groups):

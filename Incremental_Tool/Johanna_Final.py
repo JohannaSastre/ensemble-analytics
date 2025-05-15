@@ -1104,6 +1104,23 @@ elif selected == "Case selection":
 
     p10_case, p50_case, p90_case = p10.sort_values('sum').index[0], p50.sort_values('sum').index[0], p90.sort_values('sum').index[0]
 
+    # Show yearly profile per selected case
+    with st.tabs(["P10 Yearly Profile", "P50 Yearly Profile", "P90 Yearly Profile"]) as (tab_p10, tab_p50, tab_p90):
+        for case_name, case_id, tab in zip(["P10", "P50", "P90"], [p10_case, p50_case, p90_case], [tab_p10, tab_p50, tab_p90]):
+            with tab:
+                st.subheader(f"{case_name} Yearly Profile: {case_id}")
+                for i in range(num_groups):
+                    df = dfs[i]
+                    prop = selected_props[i]
+                    identifier = selected_identifiers[i]
+
+                    if case_id in df.columns:
+                        yearly = df[case_id].resample('Y').last().diff().fillna(0)
+                        df_yearly = yearly.to_frame(name=f"{prop} - {identifier}")
+                        df_yearly.index = df_yearly.index.year
+                        st.write(f"**{prop} - {identifier}**")
+                        st.dataframe(df_yearly)
+
     # Define subplot titles in the correct order (left to right, top to bottom)
     subplot_titles = []
     for i in range(num_groups):
@@ -1114,12 +1131,15 @@ elif selected == "Case selection":
     fig = make_subplots(
         rows=num_groups,
         cols=2,
-        subplot_titles=subplot_titles,
+        subplot_titles=[f"{selected_props[i]} - {selected_identifiers[i]} (Time Series)" if j % 2 == 0
+                        else f"{selected_props[i]} - {selected_identifiers[i]} (S-Curve)"
+                        for i in range(num_groups) for j in range(2)],
         shared_xaxes=False,
         vertical_spacing=0.1,
-        horizontal_spacing=0.1
-    )
-
+        horizontal_spacing=0.1,
+        specs=[[{}, {"secondary_y": True}] for _ in range(num_groups)]
+     )
+    
 
     for i in range(num_groups):
         df = dfs[i]
@@ -1128,56 +1148,84 @@ elif selected == "Case selection":
 
         for col in df.columns:
             if col == p90_case:
-                color = 'green'; width = 3; opacity = 1
-                show = True
+                color = 'green'; width = 3; opacity = 1; show = True
             elif col == p50_case:
-                color = 'blue'; width = 3; opacity = 1
-                show = True
+                color = 'blue'; width = 3; opacity = 1; show = True
             elif col == p10_case:
-                color = 'red'; width = 3; opacity = 1
-                show = True
+                color = 'red'; width = 3; opacity = 1; show = True
             else:
-                color = 'lightgrey'; width = 1; opacity = 0.4
-                show = False
+                color = 'lightgrey'; width = 1; opacity = 0.4; show = False
 
             fig.add_trace(go.Scatter(
                 x=df.index, y=df[col],
                 mode='lines',
-                name=col,  # ✅ shows actual case name in legend
+                name=col,
                 showlegend=show,
                 line=dict(color=color, width=width),
                 opacity=opacity
             ), row=i + 1, col=1)
 
-
-        fig.add_trace(go.Scatter(x=[date, date], y=[df.min().min(), df.max().max()],
-                                 mode='lines', line=dict(color='black', dash='dash'),
-                                 name='Selected Date', showlegend=False), row=i + 1, col=1)
-
-        fig.add_trace(go.Scatter(x=df_cum['value'], y=df_cum['cum_prob'], mode='markers',
-                                 name='CDF', marker=dict(color='grey')), row=i + 1, col=2)
-
-    for case, color in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red']):
+        # Vertical line for selected date
         fig.add_trace(go.Scatter(
-            x=[df_cum.loc[case, 'value']], y=[df_cum.loc[case, 'cum_prob']],
+            x=[date, date],
+            y=[df.min().min(), df.max().max()],
+            mode='lines',
+            line=dict(color='black', dash='dash'),
+            name='Selected Date',
+            showlegend=(i == 0)  # Only show in first subplot
+        ), row=i + 1, col=1)
+       
+       # Histogram
+        fig.add_trace(go.Histogram(
+            x=df_cum['value'],
+            name='Histogram',
+            marker=dict(color='lightblue'),
+            opacity=0.2,
+            showlegend=(i == 0)
+        ),  row=i + 1, col=2, secondary_y=True)
+       
+        # CDF plot
+        fig.add_trace(go.Scatter(
+            x=df_cum['value'],
+            y=df_cum['cum_prob'],
             mode='markers',
-            name=case,  # ✅ case name will appear in the legend
-            marker=dict(size=12, color=color, symbol='triangle-up', line=dict(width=2)),
-            showlegend=True
-        ), row=i + 1, col=2)
+            name='CDF',
+            marker=dict(color='grey'),
+            showlegend=(i == 0)  # Show legend only once
+        ), row=i + 1, col=2, secondary_y=False)
+   
+            
+
+        # Triangle markers for P90, P50, P10
+        for case, color, label in zip([p90_case, p50_case, p10_case], ['green', 'blue', 'red'], ['P90 Case', 'P50 Case', 'P10 Case']):
+            fig.add_trace(go.Scatter(
+                x=[df_cum.loc[case, 'value']],
+                y=[df_cum.loc[case, 'cum_prob']],
+                mode='markers+text',
+                name=label,
+                text=[label],
+                textposition="top right",
+                marker=dict(size=15, color=color, symbol='triangle-up', line=dict(width=2)),
+                showlegend=(i == 0)  # Legend shown once
+            ), row=i + 1, col=2, secondary_y=False)
+
+       
+    for i in range(num_groups):
+        fig.update_yaxes(title_text="Cumulative Probability", row=i+1, col=2, secondary_y=False)
+        fig.update_yaxes(title_text="Count (Histogram)", row=i+1, col=2, secondary_y=True)
+        fig.update_yaxes(showgrid=True, row=i+1, col=2, secondary_y=False)  # Keep gridlines for CDF
+        fig.update_yaxes(showgrid=False, row=i+1, col=2, secondary_y=True)  # Turn OFF for histogram
 
     fig.update_layout(
         height=400 * num_groups,
         title_text="Case Selection Results",
         showlegend=True,
+        barmode='overlay',
         template="plotly_white"
     )
 
-    #fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(size=12, color='green'), name='P90 Case'))
-    #fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(size=12, color='blue'), name='P50 Case'))
-    #fig.add_trace(go.Scatter(x=[None], y=[None], mode='markers', marker=dict(size=12, color='red'), name='P10 Case'))
-
     st.plotly_chart(fig, use_container_width=True)
+
 
     with st.expander("P10 / P50 / P90 Rankings"):
         st.subheader("P10 Cases")
