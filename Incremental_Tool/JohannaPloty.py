@@ -1210,38 +1210,43 @@ elif selected == "Case selection":
 
     st.plotly_chart(fig, use_container_width=True)
 
-    for tab, (case_name, case_id) in zip(tabs, [("P10", p10_case), ("P50", p50_case), ("P90", p90_case)]):
-        with tab:
-            st.subheader(f"{case_name} Yearly Profile: {case_id}")
-            for i in range(num_groups):
-                df = dfs[i]
-                prop = selected_props[i]
-                identifier = selected_identifiers[i]
+    # Yearly Profile Summary
+    with st.expander("Yearly Profile Summary"):
+        st.subheader("Yearly Profile for Selected Property")
 
-                if case_id in df.columns:
-                    yearly = df[case_id].resample('Y').last().diff().fillna(0)
-                    df_yearly = yearly.to_frame(name=f"{prop} - {identifier}")
-                    df_yearly.index = df_yearly.index.year
+        # Select one property/identifier combination to profile
+        selected_index = st.selectbox(
+            "Select which property to show yearly profile for:",
+            options=list(enumerate(zip(selected_props, selected_identifiers))),
+            format_func=lambda x: f"{x[1][0]} - {x[1][1]}"
+        )
 
-                    # Plot profile
-                    st.plotly_chart(
-                        go.Figure(data=go.Scatter(
-                            x=df_yearly.index,
-                            y=df_yearly.iloc[:, 0],
-                            mode='lines+markers',
-                            name=f"{prop} - {identifier}"
-                        )).update_layout(
-                            title=f"{prop} - {identifier}",
-                            xaxis_title="Year",
-                            yaxis_title="Incremental",
-                            height=300,
-                            template="plotly_white"
-                        ),
-                        use_container_width=True
-                    )
+        prop_index = selected_index[0]
+        selected_prop = selected_props[prop_index]
+        selected_identifier = selected_identifiers[prop_index]
+        df = dfs[prop_index]
 
-                    # Show data table
-                    st.dataframe(df_yearly, use_container_width=True)
+        # Select year range
+        st.write("Select year range to display:")
+        min_year = df.index.min().year
+        max_year = df.index.max().year
+        year_range = st.slider("Year range", min_value=min_year, max_value=max_year, value=(min_year, max_year))
+
+        # Compute yearly profiles for P10/P50/P90
+        yearly_profiles = {}
+        for label, case in zip(['P10', 'P50', 'P90'], [p10_case, p50_case, p90_case]):
+            if case in df.columns:
+                yearly_series = df[case].resample('Y').last().diff().fillna(0)
+                yearly_profiles[label] = yearly_series
+
+        # Combine into one DataFrame
+        df_yearly = pd.DataFrame(yearly_profiles)
+        df_yearly.index = df_yearly.index.year
+        df_yearly = df_yearly.loc[year_range[0]:year_range[1]]
+
+        st.write(f"**{selected_prop} - {selected_identifier}**")
+        st.dataframe(df_yearly, use_container_width=True)
+
 
 
 
