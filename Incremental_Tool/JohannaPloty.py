@@ -1104,25 +1104,7 @@ elif selected == "Case selection":
 
     p10_case, p50_case, p90_case = p10.sort_values('sum').index[0], p50.sort_values('sum').index[0], p90.sort_values('sum').index[0]
 
-    # Show yearly profile per selected case
-    tabs = st.tabs(["P10 Yearly Profile", "P50 Yearly Profile", "P90 Yearly Profile"])
-
-    for tab, (case_name, case_id) in zip(tabs, [("P10", p10_case), ("P50", p50_case), ("P90", p90_case)]):
-        with tab:
-            st.subheader(f"{case_name} Yearly Profile: {case_id}")
-            for i in range(num_groups):
-                df = dfs[i]
-                prop = selected_props[i]
-                identifier = selected_identifiers[i]
-
-                if case_id in df.columns:
-                    yearly = df[case_id].resample('Y').last().diff().fillna(0)
-                    df_yearly = yearly.to_frame(name=f"{prop} - {identifier}")
-                    df_yearly.index = df_yearly.index.year
-                    st.write(f"**{prop} - {identifier}**")
-                    st.dataframe(df_yearly, use_container_width=True)
-
-
+    
     # Define subplot titles in the correct order (left to right, top to bottom)
     subplot_titles = []
     for i in range(num_groups):
@@ -1227,6 +1209,40 @@ elif selected == "Case selection":
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+    for tab, (case_name, case_id) in zip(tabs, [("P10", p10_case), ("P50", p50_case), ("P90", p90_case)]):
+        with tab:
+            st.subheader(f"{case_name} Yearly Profile: {case_id}")
+            for i in range(num_groups):
+                df = dfs[i]
+                prop = selected_props[i]
+                identifier = selected_identifiers[i]
+
+                if case_id in df.columns:
+                    yearly = df[case_id].resample('Y').last().diff().fillna(0)
+                    df_yearly = yearly.to_frame(name=f"{prop} - {identifier}")
+                    df_yearly.index = df_yearly.index.year
+
+                    # Plot profile
+                    st.plotly_chart(
+                        go.Figure(data=go.Scatter(
+                            x=df_yearly.index,
+                            y=df_yearly.iloc[:, 0],
+                            mode='lines+markers',
+                            name=f"{prop} - {identifier}"
+                        )).update_layout(
+                            title=f"{prop} - {identifier}",
+                            xaxis_title="Year",
+                            yaxis_title="Incremental",
+                            height=300,
+                            template="plotly_white"
+                        ),
+                        use_container_width=True
+                    )
+
+                    # Show data table
+                    st.dataframe(df_yearly, use_container_width=True)
+
 
 
     with st.expander("P10 / P50 / P90 Rankings"):
