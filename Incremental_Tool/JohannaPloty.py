@@ -1027,6 +1027,7 @@ elif selected == "Waterfall":
     from plotly.subplots import make_subplots
     from datetime import datetime
     import numpy as np
+    import io
 
 elif selected == "Case selection":
     data_dict_base = st.session_state['data_dict_base']
@@ -1247,6 +1248,34 @@ elif selected == "Case selection":
         st.write(f"**{selected_prop} - {selected_identifier}**")
         st.dataframe(df_yearly, use_container_width=True)
 
+ 
+        # ---- Create Excel file in memory ----
+        excel_buffer = io.BytesIO()
+        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+            for label, df_yearly in profile_dataframes.items():  # Assuming you named the combined dict `profile_dataframes`
+                df_yearly.to_excel(writer, sheet_name=label)
 
+        # ---- Reset buffer position ----
+        excel_buffer.seek(0)
+
+        # ---- Show download button ----
+        st.download_button(
+            label="📥 Download Yearly Profiles as Excel",
+            data=excel_buffer,
+            file_name="Yearly_Profiles.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        st.dataframe(final_df, use_container_width=True)
+
+        # Now define profile_dataframes and download
+        profile_dataframes = {
+            "P10": final_df[["P10"]],
+            "P50": final_df[["P50"]],
+            "P90": final_df[["P90"]]
+        }
+
+        # Add export button
+...
 
 
