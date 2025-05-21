@@ -880,7 +880,7 @@ elif selected == "Analysis":
 
             # ---- Layout
             fig.update_layout(
-                height=plot_height * 250,
+                height=plot_height * 100,
                 title=dict(
                     text=f"{selected_identifier}: {selected_property}",
                     font=dict(size=25),  # Title font
