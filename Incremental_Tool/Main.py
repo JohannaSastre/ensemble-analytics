@@ -1051,7 +1051,9 @@ elif selected == "Crossplot":
 
 ######################################################################BOXPLOTS#####################################################################
 elif selected == "Boxplots":
-    
+    if 'data_dict_base' not in st.session_state or 'data_dict_project' not in st.session_state:
+        st.error("Missing data. Please go to the Upload page and load both base and project datasets.")
+        st.stop()
     tab1, tab2 = st.tabs(['Plots','Data'])
     with tab1:
         c1,c2,c3 =st.columns([5,1,30])
