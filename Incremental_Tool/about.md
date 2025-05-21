@@ -1,6 +1,6 @@
 
 
-The Incremental Dashboard in your Streamlit app is a comprehensive visual tool for analyzing production performance differences between two simulation cases: a Base case and a Project (or modified) case. Its main goal is to help you evaluate the incremental value or effect of changes (e.g., new wells, optimization strategies, injection plans) by comparing case results across regions, wells, and properties.
+The Incremental Ensemble Analysis in Streamlit app is a comprehensive visual tool for analyzing production performance differences between two simulation cases: a Base case and a Project (or modified) case. Its main goal is to help you evaluate the incremental value or effect of changes (e.g., new wells, optimization strategies, injection plans) by comparing case results across regions, wells, and properties.
 
 &nbsp;
 <h4 style='margin-bottom: 0px;'>Purpose:</h4>
