@@ -1241,7 +1241,7 @@ elif selected == "Case selection":
 
         for label, case in zip(['P10', 'P50', 'P90'], [p10_case, p50_case, p90_case]):
             if case in df.columns:
-                yearly_series = df[case].resample('Y').last()
+                yearly_series = df[case].resample('YE').last()
                 yearly_series.name = label
                 profile_dataframes[label] = yearly_series
                 final_df[label] = yearly_series
@@ -1259,17 +1259,15 @@ elif selected == "Case selection":
         # ---- Create Excel file in memory ----
         excel_buffer = io.BytesIO()
         with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-            for label, yearly_series in profile_dataframes.items():
-                df_out = yearly_series.to_frame(name=label)
-                df_out.index.name = "Year"
-                df_out.to_excel(writer, sheet_name=label)
+            final_df.to_excel(writer, sheet_name="Yearly Profiles")
+            # Optional: format column width or header here if needed
 
         # ---- Reset buffer position ----
         excel_buffer.seek(0)
 
         # ---- Show download button ----
         st.download_button(
-            label="Download Yearly Profiles as Excel",
+            label="📥 Download Yearly Profiles as Excel",
             data=excel_buffer,
             file_name="Yearly_Profiles.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
