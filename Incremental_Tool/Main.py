@@ -67,7 +67,6 @@ st.markdown(
 st.sidebar.image("logo.png", width=150)  # Replace with the correct path to your logo
 
 ########################################## Config
-st.set_page_config(layout="wide")
 
 def sort_key(s):
     import re
