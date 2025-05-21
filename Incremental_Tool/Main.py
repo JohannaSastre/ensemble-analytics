@@ -174,8 +174,8 @@ if selected == "Upload Data":
     col1_, col2_,col3_,col4_,col5_ = st.columns([12,1,12,1,12])
     
     with col1:
-
-        st.header("Ensemble Base")
+        st.markdown("<h2 style='font-size:28px;'>Ensemble Base</h2>", unsafe_allow_html=True)
+        #st.header("Ensemble Base")
         file = st.file_uploader(key='1',label='', type=['pkl'])
         if file:
             data_dict_base = pd.read_pickle(file)
