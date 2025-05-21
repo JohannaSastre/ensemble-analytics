@@ -1269,7 +1269,7 @@ elif selected == "Case selection":
 
         # ---- Show download button ----
         st.download_button(
-            label="📥 Download Yearly Profiles as Excel",
+            label="Download Yearly Profiles as Excel",
             data=excel_buffer,
             file_name="Yearly_Profiles.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
