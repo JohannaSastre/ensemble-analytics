@@ -692,7 +692,7 @@ elif selected == "Analysis":
         tab1, tab2 = st.tabs(["Plots", "Data"])
 
         with tab1:
-            with st.expander("⚙️ Plot Settings", expanded=False):
+            with st.expander("Plot Settings", expanded=False):
                 plot_height = st.slider("Plot height (rows)", 4, 16, 10)
 
                 col1, col2 = st.columns(2)
@@ -712,13 +712,7 @@ elif selected == "Analysis":
                 with incr_col:
                     plot_incremental = st.checkbox("Plot incremental Histogram", True)
                     plot_scurve = st.checkbox("Plot incremental S-Curve", True)
-                    override_axis_incremental = st.checkbox("Override Incremental Axes")
-                    if override_axis_incremental:
-                        colmin, colmax = st.columns(2)
-                        with colmin:
-                            incremental_yaxis_min = st.number_input("Incremental Axis Min")
-                        with colmax:
-                            incremental_yaxis_max = st.number_input("Incremental Axis Max")
+                    
 
             # --- Data loading logic ---
             if select_category == 'Field':
@@ -862,9 +856,9 @@ elif selected == "Analysis":
                     fig.add_hline(y=q, line_dash="dashdot", line_color=color, row=2, col=2, secondary_y=True)
 
             # ---- Override axes if needed
-            if override_axis_incremental:
-                fig.update_yaxes(range=[incremental_yaxis_min, incremental_yaxis_max], row=2, col=1)
-                fig.update_xaxes(range=[incremental_yaxis_min, incremental_yaxis_max], row=2, col=2)
+            # if override_axis_incremental:
+            #    fig.update_yaxes(range=[incremental_yaxis_min, incremental_yaxis_max], row=2, col=1)
+            #    fig.update_xaxes(range=[incremental_yaxis_min, incremental_yaxis_max], row=2, col=2)
 
             # ---- Axis labels
             fig.update_xaxes(title_text="Time (days)", row=1, col=1)
