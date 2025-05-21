@@ -908,7 +908,7 @@ elif selected == "Analysis":
 
             # ---- Layout
             fig.update_layout(
-                height=plot_height * 100,
+                height=plot_height * 250,
                 title=dict(
                     text=f"{selected_identifier}: {selected_property}",
                     font=dict(size=25),  # Title font
@@ -917,7 +917,7 @@ elif selected == "Analysis":
                 ),
                 showlegend=True,
                 template="plotly_white",
-                font=dict(size=30),  # Global font size (axes, ticks, legend)
+                font=dict(size=20),  # Global font size (axes, ticks, legend)
                 barmode='overlay'
         )
 
