@@ -801,16 +801,24 @@ elif selected == "Analysis":
             
             
             
-            selected_date = st.select_slider('Select date',options = dates, format_func=lambda date: date.strftime("%Y-%m-%d"))
-            
+            # Select date and extract slices
+            selected_date = st.select_slider(
+                'Select date',
+                options=dates,
+                format_func=lambda d: d.strftime("%Y-%m-%d")
+            )
+
+            # Extract timeslices and fill missing values
             base_slice = df_base.loc[selected_date].fillna(0)
-            project_slice =  df_project.loc[selected_date].fillna(0)
-            incremental_slice =  df_incremental.loc[selected_date].fillna(0)
-            incremental_slice_sorted = incremental_slice.sort_values()
-                            
-            df_incremental_slice_cumprob = pd.DataFrame(index = incremental_slice_sorted.index)
-            df_incremental_slice_cumprob['value'] = incremental_slice_sorted
-            df_incremental_slice_cumprob['cum_prob'] = np.arange(len(incremental_slice_sorted),0, -1) / len(incremental_slice_sorted)
+            project_slice = df_project.loc[selected_date].fillna(0)
+            incremental_slice = df_incremental.loc[selected_date].fillna(0)
+
+            # Sort incremental slice and compute cumulative probability
+            sorted_vals = incremental_slice.sort_values()
+            df_incremental_slice_cumprob = pd.DataFrame({
+                'value': sorted_vals,
+                'cum_prob': np.linspace(1, 0, len(sorted_vals))
+            }, index=sorted_vals.index)
             
             ########### plot data
             
