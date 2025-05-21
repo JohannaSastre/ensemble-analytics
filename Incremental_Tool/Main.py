@@ -119,7 +119,7 @@ from pathlib import Path
 ABOUT = Path("about.md")
 
 if selected == "About":
-    st.markdown("<h3 style='text-align: left; font-weight: bold;'>Incremental Dashboard</h3>", unsafe_allow_html=True)
+    #st.markdown("<h3 style='text-align: left; font-weight: bold;'>Incremental Dashboard</h3>", unsafe_allow_html=True)
     try:
         with open("about.md", "r", encoding="utf-8") as file:
             about_content = file.read()
@@ -782,11 +782,8 @@ elif selected == "Analysis":
                 'cum_prob': np.linspace(1, 0, len(sorted_vals))
             }, index=sorted_vals.index)
 
-    
-     
-
-            
-            ########### plot data
+              
+            ############################## ANALYSIS plot data#################################################################################
             
             import plotly.graph_objects as go
             from plotly.subplots import make_subplots
@@ -855,11 +852,7 @@ elif selected == "Analysis":
                     fig.add_vline(x=val, line_dash="dashdot", line_color=color, row=2, col=2)
                     fig.add_hline(y=q, line_dash="dashdot", line_color=color, row=2, col=2, secondary_y=True)
 
-            # ---- Override axes if needed
-            # if override_axis_incremental:
-            #    fig.update_yaxes(range=[incremental_yaxis_min, incremental_yaxis_max], row=2, col=1)
-            #    fig.update_xaxes(range=[incremental_yaxis_min, incremental_yaxis_max], row=2, col=2)
-
+          
             # ---- Axis labels
             fig.update_xaxes(title_text="Time (days)", row=1, col=1)
             fig.update_xaxes(title_text=f"{selected_property} @ {selected_date.strftime('%Y-%m-%d')}", row=1, col=2)
@@ -899,7 +892,7 @@ elif selected == "Analysis":
             st.write(f'Incremental - {selected_identifier} - {selected_property}')
             st.dataframe(df_incremental,use_container_width=True)
         
-        
+#############################################################################CROSSPLOT#####################################################################################       
 elif selected == "Crossplot":
 
     ########### setup widgets
@@ -1056,7 +1049,7 @@ elif selected == "Crossplot":
         st.write(f'Y-Axis: {y_selected_type}: {y_selected_property} @ {y_selected_date.strftime("%Y-%m-%d")}')
         st.dataframe(y_slice,use_container_width=True)
 
-
+######################################################################BOXPLOTS#####################################################################
 elif selected == "Boxplots":
     
     tab1, tab2 = st.tabs(['Plots','Data'])
@@ -1259,33 +1252,71 @@ elif selected == "Boxplots":
         
         
         with c3:
-            fig,ax = plt.subplots(figsize=(18,plot_height))
-            
-            for i,col in enumerate(df.columns):
-                
-                min_val = df[col].min()
-                p10 = df[col].quantile(0.9)
-                
-                p50 = df[col].quantile(0.5)
-                p90 = df[col].quantile(0.1)
-                max_val = df[col].max()
-                
-                ax.hlines([min_val, max_val], i-0.15, i+0.15, color='black', linewidth=1)
-                ax.hlines(p50, i - 0.4, i + 0.4, color='black', linestyle = '--',linewidth=1, label="P50" if i == 0 else "")
-                ax.bar(i,p10-p90,bottom = p90, color = 'lightblue',edgecolor='black', linewidth=1, label="P10 - P90" if i == 0 else "")
-                ax.vlines(i, min_val, p90, color='black', linewidth=1, label="Min" if i == 0 else "")# Lower whisker
-                ax.vlines(i, max_val, p10, color='black', linewidth=1, label="Max" if i == 0 else "")
-                
-            ax.set_xticks(range(len(df.columns)))
-            ax.set_xticklabels(df.columns, rotation=45, ha="right")
-            
-              
-            ax.set_ylabel(f'{selected_property} @ {selected_date.strftime("%Y-%m-%d")}')
-            ax.set_xlabel(selected_category)
-            ax.grid()
-            ax.legend()
-            
-            st.pyplot(fig, use_container_width=True)
+            import plotly.graph_objects as go
+
+            fig = go.Figure()
+
+            for i, col in enumerate(df.columns):
+                col_data = df[col]
+                min_val = col_data.min()
+                p10 = col_data.quantile(0.9)
+                p50 = col_data.quantile(0.5)
+                p90 = col_data.quantile(0.1)
+                max_val = col_data.max()
+
+                # Bar for P10–P90 band
+                fig.add_trace(go.Bar(
+                    x=[col],
+                    y=[p10 - p90],
+                    base=[p90],
+                    marker_color='lightblue',
+                    marker_line=dict(color='black', width=1),
+                    name="P10 - P90" if i == 0 else "",
+                    showlegend=(i == 0)
+                ))
+
+                # P50 marker
+                fig.add_trace(go.Scatter(
+                    x=[col],
+                    y=[p50],
+                    mode='markers',
+                    marker=dict(color='black', symbol='line-ns-open', size=20),
+                    name="P50" if i == 0 else "",
+                    showlegend=(i == 0)
+                ))
+
+                # Min to P90
+                fig.add_trace(go.Scatter(
+                    x=[col, col],
+                    y=[min_val, p90],
+                    mode='lines',
+                    line=dict(color='black'),
+                    name="Min" if i == 0 else "",
+                    showlegend=(i == 0)
+                ))
+
+                # P10 to Max
+                fig.add_trace(go.Scatter(
+                    x=[col, col],
+                    y=[p10, max_val],
+                    mode='lines',
+                    line=dict(color='black'),
+                    name="Max" if i == 0 else "",
+                    showlegend=(i == 0)
+                ))
+
+            # Layout
+            fig.update_layout(
+                title=f"{selected_category}: {selected_property} @ {selected_date.strftime('%Y-%m-%d')}",
+                yaxis_title=selected_property,
+                xaxis_title=selected_category,
+                template="plotly_white",
+                height=600,
+                barmode='overlay',
+                xaxis_tickangle=45
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
         
     
     with tab2:            
