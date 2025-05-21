@@ -23,6 +23,49 @@ from matplotlib.gridspec import GridSpec
 import streamlit as st
 from streamlit_option_menu import option_menu
 
+#########################for plotting###################
+import plotly.graph_objects as go
+import numpy as np
+import pandas as pd
+from plotly.subplots import make_subplots  # Ensure this is included
+
+import sys
+sys.path.append("style.py")
+#from style import init_page
+
+# Initialize the page with custom styles
+#   page_title="Incremental Value",
+#    page_icon=":chart_with_upwards_trend:",
+#    layout="wide",
+#)
+
+st.set_page_config(
+    page_title="Incremental Value",
+    page_icon=":chart_with_upwards_trend:",
+    layout="wide",
+)
+
+# Apply the styles
+#st.markdown(apply_styles(), unsafe_allow_html=True)
+
+st.markdown(
+    """
+    <style>
+    /* Add your custom styles here */
+    body {
+        background-color: #F2F2F2;
+        color: #1A1A1A;
+        font-family: "Segoe UI", "Arial", sans-serif;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# Add the Aker BP logo to the top-left side
+st.sidebar.image("logo.png", width=150)  # Replace with the correct path to your logo
+
 ########################################## Config
 st.set_page_config(layout="wide")
 
@@ -36,13 +79,13 @@ def sort_key(s):
 
 ########################################## Sidebar option menu
 with st.sidebar:
-    st.title("🔮 Incremental Ensemble Analysis")
+    st.title("Incremental Ensemble Analysis")
     
     selected = option_menu(
         menu_title="",           # Title of the sidebar
-        options=["Upload Data", "Filter cases","Sales Conversions", "Boxplots","Analysis","Crossplot","Case selection","Waterfall","Data"
+        options=["About","Upload Data", "Filter cases","Sales Conversions", "Boxplots","Analysis","Crossplot","Case selection","Waterfall","Data"
                 ],  # Menu options with emojis
-        icons=["capslock", "graph-down", "bar-chart-steps","arrows-expand-vertical","diagram-3","currency-dollar","bullseye","bounding-box","clipboard-data", "gear"],  # Optional icons from Bootstrap
+        icons=["info-circle", "capslock", "graph-down", "bar-chart-steps","arrows-expand-vertical","diagram-3","currency-dollar","bullseye","bounding-box","clipboard-data", "gear"],  # Optional icons from Bootstrap
         default_index=0,                  # Default selected option
         )
 
@@ -71,7 +114,19 @@ with st.sidebar:
             with st.expander('Currently Displayed Cases:'):
                 st.write(filtered_cases)
         
+from pathlib import Path
 
+# Point directly to the markdown file in the current directory
+ABOUT = Path("about.md")
+
+if selected == "About":
+    st.markdown("<h3 style='text-align: left; font-weight: bold;'>Incremental Dashboard</h3>", unsafe_allow_html=True)
+    try:
+        with open("about.md", "r", encoding="utf-8") as file:
+            about_content = file.read()
+            st.markdown(about_content, unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.error("The 'about.md' file is missing. Please ensure it's in the same folder as your script.")
 
 ########################################## Main menus
 if selected == "Data":
@@ -321,8 +376,7 @@ if selected == "Upload Data":
                 st.dataframe(st.session_state['region_groups'], use_container_width=True)
         
         
-        
-                
+ #######################################################Conversion Factors#########################################                  
                 
             
 if selected == "Sales Conversions":
@@ -614,7 +668,7 @@ if selected == "Sales Conversions":
             
     
 
-            
+ #######################################################################ANALYSIS#####################################################################           
       
     
 elif selected == "Analysis":
@@ -761,67 +815,107 @@ elif selected == "Analysis":
             
             ########### plot data
             
-            with c3:
-                fig,axs = plt.subplots(2,2,figsize=(18,plot_height))
-                fig.suptitle(selected_identifier+': '+selected_property)
-                
-                ax1 = axs[0,0]
-                ax2 = axs[0,1]
-                ax3 = axs[1,0]
-                ax4 = axs[1,1]
-                
-                bins = np.histogram_bin_edges(np.concatenate([base_slice, project_slice]), bins=30)
-            
-                if plot_base:
-                    ax1.plot(df_base,color='grey',alpha = 0.5)
-                    ax1.plot([],[],color='grey',label='Base')
-                    ax2.hist(base_slice, color = 'grey', edgecolor = 'black', bins= bins, label = 'Base',alpha = 0.5)
-                
-                if plot_project:
-                    ax1.plot(df_project,color='blue',alpha = 0.5)
-                    ax1.plot([],[],color='blue',label='Project')  
-                    ax2.hist(project_slice, color = 'blue', edgecolor = 'black', bins= bins, label = 'Project',alpha = 0.5)
-            
-                if plot_incremental:
-                    ax3.plot(df_incremental,color='red',alpha = 0.5)
-                    ax3.plot([],[],color='red',label='Incremental')   
-                    ax4.hist(incremental_slice, color = 'red', edgecolor = 'black', bins= 30, label = 'Incremental',alpha = 0.5)
-                
-                if plot_scurve:
-                    ax4_s = ax4.twinx()
-                    
-                    
-                    ax4_s.scatter(df_incremental_slice_cumprob['value'], df_incremental_slice_cumprob['cum_prob'], color='red', edgecolor='black', alpha=0.9, label="Cumulative Probability")
-                    ax4_s.axhline(0.1, color='green', linestyle='dashdot')
-                    ax4_s.axhline(0.5, color='blue', linestyle='dashdot')
-                    ax4_s.axhline(0.9, color='firebrick', linestyle='dashdot')            
-                    
-                    ax4_s.axvline(incremental_slice.quantile(0.9), color='green', linestyle='dashdot')
-                    ax4_s.axvline(incremental_slice.quantile(0.5), color='blue', linestyle='dashdot')
-                    ax4_s.axvline(incremental_slice.quantile(0.1), color='firebrick', linestyle='dashdot')
-                                
-            
-                ax1.axvline(selected_date, color='black', linestyle='dashed', label="Selected Timeslice",zorder=3)
-                ax3.axvline(selected_date, color='black', linestyle='dashed', label="Selected Timeslice",zorder=3)
-            
-            
-                for ax in [ax2,ax4]:
-                    ax.grid()
-                    ax.legend()
-                    ax.set_xlabel(f'{selected_property} @ {selected_date.strftime("%Y-%m-%d")}')
-                for ax in [ax1,ax3]:
-                    ax.grid()
-                    ax.legend()
-                    ax.set_xlabel('Time (days)')
-                    ax.set_ylabel(selected_property)
-                    
-                    
-                    
-                if override_axis_incremental:
-                    ax3.set_ylim(incremental_yaxis_min,incremental_yaxis_max)
-                    ax4.set_xlim(incremental_yaxis_min,incremental_yaxis_max)
-            
-                st.pyplot(fig,use_container_width=True)           
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+            import numpy as np
+
+            # Create 2x2 subplots
+            fig = make_subplots(rows=2, cols=2,
+                                subplot_titles=("Base/Project Time Series", "Base/Project Histogram",
+                                                "Incremental Time Series", "Incremental Histogram + S-Curve"),
+                                specs=[[{}, {}], [{}, {"secondary_y": True}]])
+
+            # ---- Bins for consistent histograms
+            bins = np.histogram_bin_edges(np.concatenate([base_slice, project_slice]), bins=30)
+
+            # ---- Top left: Time series (base + project)
+            if plot_base:
+                for col in df_base.columns:
+                    fig.add_trace(go.Scatter(x=df_base.index, y=df_base[col], mode='lines',
+                                            name=f"Base: {col}", line=dict(color='grey', width=1), opacity=0.5),
+                                row=1, col=1)
+
+            if plot_project:
+                for col in df_project.columns:
+                    fig.add_trace(go.Scatter(x=df_project.index, y=df_project[col], mode='lines',
+                                            name=f"Project: {col}", line=dict(color='blue', width=1), opacity=0.5),
+                                row=1, col=1)
+
+            fig.add_vline(x=selected_date, line_dash='dash', line_color='black', row=1, col=1)
+
+            # ---- Top right: Histogram (base + project)
+            if plot_base:
+                fig.add_trace(go.Histogram(x=base_slice, name="Base", marker_color='grey', opacity=0.75,
+                                        xbins=dict(start=bins[0], end=bins[-1], size=(bins[1] - bins[0])),marker_line=dict(width=2.5, color='black')),
+                            row=1, col=2)
+
+            if plot_project:
+                fig.add_trace(go.Histogram(x=project_slice, name="Project", marker_color='blue', opacity=0.5,
+                                        xbins=dict(start=bins[0], end=bins[-1], size=(bins[1] - bins[0])),marker_line=dict(width=2.5, color='black')),
+                            row=1, col=2)
+
+            # ---- Bottom left: Incremental time series
+            if plot_incremental:
+                for col in df_incremental.columns:
+                    fig.add_trace(go.Scatter(x=df_incremental.index, y=df_incremental[col], mode='lines',
+                                            name=f"Incremental: {col}", line=dict(color='red'), opacity=0.5),
+                                row=2, col=1)
+
+                fig.add_vline(x=selected_date, line_dash='dash', line_color='black', row=2, col=1)
+
+            # ---- Bottom right: Incremental histogram + S-curve
+            if plot_incremental:
+                fig.add_trace(go.Histogram(x=incremental_slice, name="Incremental", marker_color='red', opacity=0.5),
+                            row=2, col=2, secondary_y=False)
+
+            if plot_scurve:
+                fig.add_trace(go.Scatter(x=df_incremental_slice_cumprob['value'],
+                                        y=df_incremental_slice_cumprob['cum_prob'],
+                                        mode='markers',
+                                        name="Cumulative Probability",
+                                        marker=dict(color='red', line=dict(color='black', width=1))),
+                            row=2, col=2, secondary_y=True)
+
+                # Add P10, P50, P90 lines
+                for q, color in zip([0.1, 0.5, 0.9], ['firebrick', 'blue', 'green']):
+                    val = incremental_slice.quantile(q)
+                    fig.add_vline(x=val, line_dash="dashdot", line_color=color, row=2, col=2)
+                    fig.add_hline(y=q, line_dash="dashdot", line_color=color, row=2, col=2, secondary_y=True)
+
+            # ---- Override axes if needed
+            if override_axis_incremental:
+                fig.update_yaxes(range=[incremental_yaxis_min, incremental_yaxis_max], row=2, col=1)
+                fig.update_xaxes(range=[incremental_yaxis_min, incremental_yaxis_max], row=2, col=2)
+
+            # ---- Axis labels
+            fig.update_xaxes(title_text="Time (days)", row=1, col=1)
+            fig.update_xaxes(title_text=f"{selected_property} @ {selected_date.strftime('%Y-%m-%d')}", row=1, col=2)
+            fig.update_xaxes(title_text="Time (days)", row=2, col=1)
+            fig.update_xaxes(title_text=f"{selected_property} @ {selected_date.strftime('%Y-%m-%d')}", row=2, col=2)
+
+            fig.update_yaxes(title_text=selected_property, row=1, col=1)
+            fig.update_yaxes(title_text="Count", row=1, col=2)
+            fig.update_yaxes(title_text=selected_property, row=2, col=1)
+            fig.update_yaxes(title_text="Count", row=2, col=2)
+            fig.update_yaxes(title_text="Cumulative Probability", row=2, col=2, secondary_y=True)
+
+            # ---- Layout
+            fig.update_layout(
+                height=plot_height * 100,
+                title=dict(
+                    text=f"{selected_identifier}: {selected_property}",
+                    font=dict(size=25),  # Title font
+                    x=0.0,
+                    xanchor='left'
+                ),
+                showlegend=True,
+                template="plotly_white",
+                font=dict(size=30),  # Global font size (axes, ticks, legend)
+                barmode='overlay'
+        )
+
+            # ---- Show in Streamlit
+            st.plotly_chart(fig, use_container_width=True)            
                 
     with tab2:
         
