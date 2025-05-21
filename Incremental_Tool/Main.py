@@ -175,7 +175,6 @@ if selected == "Upload Data":
     
     with col1:
         st.markdown("<h2 style='font-size:28px;'>Ensemble Base</h2>", unsafe_allow_html=True)
-        #st.header("Ensemble Base")
         file = st.file_uploader(key='1',label='', type=['pkl'])
         if file:
             data_dict_base = pd.read_pickle(file)
@@ -184,7 +183,7 @@ if selected == "Upload Data":
     with col2:        
         
         if 'data_dict_base' in st.session_state:
-            st.header("Ensemble Project")
+            st.markdown("<h2 style='font-size:28px;'>Ensemble Project</h2>", unsafe_allow_html=True)
             file2 = st.file_uploader(key='2', label='', type=['pkl'])
             if file2:
                 data_dict_project = pd.read_pickle(file2)
@@ -192,7 +191,7 @@ if selected == "Upload Data":
 
     with col3:          
         if 'data_dict_project' in st.session_state:
-            st.header("Incremental Mapping")
+            st.markdown("<h2 style='font-size:28px;'>Incremental Mapping</h2>", unsafe_allow_html=True)
             file3 = st.file_uploader(label='Excel file containing Base and Project cases',key='3',  type=['xlsx'])
             if file3:
                 df_incremental_mapping = pd.read_excel(file3)
@@ -255,31 +254,31 @@ if selected == "Upload Data":
 
     with col4:        
         if 'dict_incremental_mapping' in st.session_state:
-            st.header("Well Groups")
             
+            st.markdown("<h2 style='font-size:28px;'>Well Groups</h2>", unsafe_allow_html=True)
             file4 = st.file_uploader(label='Excel file with  well groups',key='4',  type=['xlsx'])
             if file4:
                 df_well_groups = pd.read_excel(file4,index_col=0)
                 st.session_state['well_groups'] = df_well_groups
         
-                #st.dataframe(df_well_groups)
+                
     with col5:        
         if 'dict_incremental_mapping' in st.session_state:
-            st.header("Region Groups")
             
+            st.markdown("<h2 style='font-size:28px;'>Region Groups</h2>", unsafe_allow_html=True)
             file5 = st.file_uploader(label='Excel file with region groups',key='5',  type=['xlsx'])
             if file5:
                 df_region_groups = pd.read_excel(file5,index_col=0)
                 st.session_state['region_groups'] = df_region_groups
         
-                #st.dataframe(df_well_groups)
+                
 
     
     with col1_:
         
         if 'dict_incremental_mapping' in st.session_state:
-            st.header("Case mapping Quality Control")
-           
+            
+            st.markdown("<h2 style='font-size:28px;'>Case mapping Quality Control</h2>", unsafe_allow_html=True)
             st.success("Cases OK")
             st.write(st.session_state['dict_incremental_mapping'])
         
@@ -287,7 +286,8 @@ if selected == "Upload Data":
 
         
         if 'dict_incremental_mapping' in st.session_state:
-            st.header("Data quality control")
+            
+            st.markdown("<h2 style='font-size:28px;'>Data quality control</h2>", unsafe_allow_html=True)
             c1,c2,c3,c4 =st.columns(4)
                
             data_dict_base = st.session_state['data_dict_base'] 
@@ -674,151 +674,123 @@ elif selected == "Analysis":
 
     ########### setup widgets
     
-    data_dict_base = st.session_state['data_dict_base']
-    data_dict_project = st.session_state['data_dict_project']
-    
-    dict_incremental_mapping = st.session_state['dict_incremental_mapping'] 
-    
-    regions = data_dict_base['Metadata']['Regions']
-    regions = sorted(regions, key=sort_key)
-    props = data_dict_base['Metadata']['Properties']
-    dates = data_dict_base['Metadata']['Dates']
-    wells = data_dict_base['Metadata']['Wells']
-    well_groups = st.session_state['well_groups']
-    region_groups = st.session_state['region_groups']
-    cases_base = data_dict_base['Metadata']['Cases']
-    cases_project = data_dict_project['Metadata']['Cases']
-    
-    
-    tab1, tab2 = st.tabs(['Plots','Data'])
-    with tab1:
-        c1,c2,c3 = st.columns([5,1,30])
-        with c1:
-            
-                
-            with st.expander("Plot settings"):
-                
-                plot_height = st.number_input("Plot height",4,16,10)
-                tab1,tab2=st.tabs(["Base / Project","Incremental"])
-                with tab1:
-                    plot_base = st.checkbox('Plot base',True)
-                    plot_project = st.checkbox('Plot project',True)
-                    
-                    
-                with tab2:
-                    plot_incremental = st.checkbox('Plot incremental Histogram',True)
-                    plot_scurve = st.checkbox('Plot incremental S-Curve',True)
-                    override_axis_incremental = st.checkbox("Override Incremental Axes",)
-                    if override_axis_incremental:
-                        col1,col2 = st.columns(2)
-                        with col1:
-                            incremental_yaxis_min = st.number_input("Incremental Axis Min")
-                        with col2:
-                            incremental_yaxis_max = st.number_input("Incremental Axis Max")
-            
-            select_category = st.selectbox(f"Select Category",options = ['Field','Region','Well', 'Well Group','Region Group'])
+        data_dict_base = st.session_state['data_dict_base']
+        data_dict_project = st.session_state['data_dict_project']
         
+        dict_incremental_mapping = st.session_state['dict_incremental_mapping'] 
+        
+        regions = data_dict_base['Metadata']['Regions']
+        regions = sorted(regions, key=sort_key)
+        props = data_dict_base['Metadata']['Properties']
+        dates = data_dict_base['Metadata']['Dates']
+        wells = data_dict_base['Metadata']['Wells']
+        well_groups = st.session_state['well_groups']
+        region_groups = st.session_state['region_groups']
+        cases_base = data_dict_base['Metadata']['Cases']
+        cases_project = data_dict_project['Metadata']['Cases']
+
+        tab1, tab2 = st.tabs(["Plots", "Data"])
+
+        with tab1:
+            with st.expander("⚙️ Plot Settings", expanded=False):
+                plot_height = st.slider("Plot height (rows)", 4, 16, 10)
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    select_category = st.selectbox("Select Category", ['Field', 'Region', 'Well', 'Well Group', 'Region Group'])
+                    selected_property = st.selectbox("Select Property", props)
+                with col2:
+                    selected_date = st.select_slider("Select Date", options=dates, format_func=lambda d: d.strftime("%Y-%m-%d"))
+
+                st.markdown("### Plot Options")
+                base_col, incr_col = st.columns(2)
+
+                with base_col:
+                    plot_base = st.checkbox("Plot base", True)
+                    plot_project = st.checkbox("Plot project", True)
+
+                with incr_col:
+                    plot_incremental = st.checkbox("Plot incremental Histogram", True)
+                    plot_scurve = st.checkbox("Plot incremental S-Curve", True)
+                    override_axis_incremental = st.checkbox("Override Incremental Axes")
+                    if override_axis_incremental:
+                        colmin, colmax = st.columns(2)
+                        with colmin:
+                            incremental_yaxis_min = st.number_input("Incremental Axis Min")
+                        with colmax:
+                            incremental_yaxis_max = st.number_input("Incremental Axis Max")
+
+            # --- Data loading logic ---
             if select_category == 'Field':
                 selected_identifier = 'Field'
-                selected_property = st.selectbox('Select property', props)
-            
-                df_base = data_dict_base['Field'][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)  
-                df_project = data_dict_project['Field'][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0) 
-                
-            if select_category == 'Region':
+                df_base = data_dict_base['Field'][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
+                df_project = data_dict_project['Field'][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
+
+            elif select_category == 'Region':
                 selected_identifier = st.selectbox('Select region', regions)
-                selected_property = st.selectbox('Select property', props)
-            
-                df_base = data_dict_base['Regions'][selected_identifier][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)   
-                df_project = data_dict_project['Regions'][selected_identifier][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)  
-                
-            if select_category == 'Well':
+                df_base = data_dict_base['Regions'][selected_identifier][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
+                df_project = data_dict_project['Regions'][selected_identifier][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
+
+            elif select_category == 'Well':
                 selected_identifier = st.selectbox('Select well', wells)
-                selected_property = st.selectbox('Select property', props)
-            
-                df_base = data_dict_base['Wells'][selected_identifier][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0) 
-                df_project = data_dict_project['Wells'][selected_identifier][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)   
-            
-            if select_category == 'Well Group':
-                selected_identifier = st.selectbox(f"Select Well Group",options = well_groups.columns)
-                selected_property = st.selectbox('Select property', props)
-                
-                dfs_temp=[]
-                for well in well_groups.index[well_groups[selected_identifier]==1]:
-                    df_temp = data_dict_base['Wells'][well][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
-                    dfs_temp.append(df_temp)
-                if len(dfs_temp)>0:
-                    df_base = reduce(operator.add, dfs_temp)
-                else:
-                    df_base = pd.DataFrame(index=dates,columns=cases_base).fillna(0)
-                    
-                dfs_temp=[]
-                for well in well_groups.index[well_groups[selected_identifier]==1]:
-                    df_temp = data_dict_project['Wells'][well][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
-                    dfs_temp.append(df_temp)
-                if len(dfs_temp)>0:
-                    df_project = reduce(operator.add, dfs_temp)
-                else:
-                    df_project = pd.DataFrame(index=dates,columns=cases_project).fillna(0)
-        
-            
-            if select_category == 'Region Group':
-                selected_identifier = st.selectbox(f"Select Region Group",options = region_groups.columns)
-                selected_property = st.selectbox('Select property', props)
-                
-                dfs_temp=[]
-                for region in region_groups.index[region_groups[selected_identifier]==1]:
-                    df_temp = data_dict_base['Regions'][str(region)][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
-                    dfs_temp.append(df_temp)
-                if len(dfs_temp)>0:
-                    df_base = reduce(operator.add, dfs_temp)
-                else:
-                    df_base = pd.DataFrame(index=dates,columns=cases_base).fillna(0)
-                    
-                dfs_temp=[]
-                for region in region_groups.index[region_groups[selected_identifier]==1]:
-                    df_temp = data_dict_project['Regions'][str(region)][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
-                    dfs_temp.append(df_temp)
-                if len(dfs_temp)>0:
-                    df_project = reduce(operator.add, dfs_temp)
-                else:
-                    df_project = pd.DataFrame(index=dates,columns=cases_project).fillna(0)
-            
-        
+                df_base = data_dict_base['Wells'][selected_identifier][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
+                df_project = data_dict_project['Wells'][selected_identifier][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
+
+            elif select_category == 'Well Group':
+                selected_identifier = st.selectbox("Select Well Group", options=well_groups.columns)
+                dfs_temp = [
+                    data_dict_base['Wells'][well][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
+                    for well in well_groups.index[well_groups[selected_identifier] == 1]
+                ]
+                df_base = reduce(operator.add, dfs_temp) if dfs_temp else pd.DataFrame(index=dates, columns=cases_base).fillna(0)
+
+                dfs_temp = [
+                    data_dict_project['Wells'][well][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
+                    for well in well_groups.index[well_groups[selected_identifier] == 1]
+                ]
+                df_project = reduce(operator.add, dfs_temp) if dfs_temp else pd.DataFrame(index=dates, columns=cases_project).fillna(0)
+
+            elif select_category == 'Region Group':
+                selected_identifier = st.selectbox("Select Region Group", options=region_groups.columns)
+                dfs_temp = [
+                    data_dict_base['Regions'][str(region)][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
+                    for region in region_groups.index[region_groups[selected_identifier] == 1]
+                ]
+                df_base = reduce(operator.add, dfs_temp) if dfs_temp else pd.DataFrame(index=dates, columns=cases_base).fillna(0)
+
+                dfs_temp = [
+                    data_dict_project['Regions'][str(region)][selected_property].apply(pd.to_numeric, errors='coerce').fillna(0)
+                    for region in region_groups.index[region_groups[selected_identifier] == 1]
+                ]
+                df_project = reduce(operator.add, dfs_temp) if dfs_temp else pd.DataFrame(index=dates, columns=cases_project).fillna(0)
+
+            # Fill and filter cases
             df_base = df_base.fillna(0)
             df_project = df_project.fillna(0)
-            
-            base_filter = [x[0] for x in filtered_cases]
-            project_filter = [x[1] for x in filtered_cases]
-            df_base = df_base[base_filter]
-            df_project = df_project[project_filter]
-            
+            df_base = df_base[[x[0] for x in filtered_cases]]
+            df_project = df_project[[x[1] for x in filtered_cases]]
+
+            # Compute incremental
             df_incremental = pd.DataFrame(index=dates)
             for col_base in df_base.columns:
                 if col_base in dict_incremental_mapping:
                     col_project = dict_incremental_mapping[col_base]
-                    df_incremental[col_project+' - '+col_base] = df_project[col_project]-df_base[col_base]
-            
-            
-            
-            # Select date and extract slices
-            selected_date = st.select_slider(
-                'Select date',
-                options=dates,
-                format_func=lambda d: d.strftime("%Y-%m-%d")
-            )
+                    df_incremental[col_project + ' - ' + col_base] = df_project[col_project] - df_base[col_base]
 
-            # Extract timeslices and fill missing values
+            # Slicing
             base_slice = df_base.loc[selected_date].fillna(0)
             project_slice = df_project.loc[selected_date].fillna(0)
             incremental_slice = df_incremental.loc[selected_date].fillna(0)
 
-            # Sort incremental slice and compute cumulative probability
             sorted_vals = incremental_slice.sort_values()
             df_incremental_slice_cumprob = pd.DataFrame({
                 'value': sorted_vals,
                 'cum_prob': np.linspace(1, 0, len(sorted_vals))
             }, index=sorted_vals.index)
+
+    
+     
+
             
             ########### plot data
             
@@ -924,14 +896,14 @@ elif selected == "Analysis":
             # ---- Show in Streamlit
             st.plotly_chart(fig, use_container_width=True)            
                 
-    with tab2:
-        
-        st.write(f'Base - {selected_identifier} - {selected_property}')
-        st.dataframe(df_base,use_container_width=True)
-        st.write(f'Project - {selected_identifier} - {selected_property}')
-        st.dataframe(df_project,use_container_width=True)
-        st.write(f'Incremental - {selected_identifier} - {selected_property}')
-        st.dataframe(df_incremental,use_container_width=True)
+        with tab2:
+            
+            st.write(f'Base - {selected_identifier} - {selected_property}')
+            st.dataframe(df_base,use_container_width=True)
+            st.write(f'Project - {selected_identifier} - {selected_property}')
+            st.dataframe(df_project,use_container_width=True)
+            st.write(f'Incremental - {selected_identifier} - {selected_property}')
+            st.dataframe(df_incremental,use_container_width=True)
         
         
 elif selected == "Crossplot":
