@@ -739,27 +739,56 @@ elif selected == "Crossplot":
     
     tab1, tab2 = st.tabs(['Plots','Data'])
     with tab1:
-        fig,ax = plt.subplots(figsize=(18,plot_height))
-        
-        
-        ax.scatter(x_slice,y_slice,color = 'grey',alpha=0.5, edgecolor = 'black')
-             
-        
-        ax.axvline(x_slice.quantile(0.9), color='green', linestyle='dashdot')
-        ax.axvline(x_slice.quantile(0.5), color='blue', linestyle='dashdot')
-        ax.axvline(x_slice.quantile(0.1), color='firebrick', linestyle='dashdot')
-        
-        ax.axhline(y_slice.quantile(0.9), color='green', linestyle='dashdot')
-        ax.axhline(y_slice.quantile(0.5), color='blue', linestyle='dashdot')
-        ax.axhline(y_slice.quantile(0.1), color='firebrick', linestyle='dashdot')
-    
-        ax.set_ylabel(f'{y_selected_type}: {y_selected_property} @ {y_selected_date.strftime("%Y-%m-%d")}')
-        ax.set_xlabel(f'{x_selected_type}: {x_selected_property} @ {x_selected_date.strftime("%Y-%m-%d")}')
-            
-        ax.grid()
-        ax.legend()
-      
-        st.pyplot(fig,use_container_width=True)           
+        import plotly.graph_objects as go
+
+        fig = go.Figure()
+
+        # Scatter plot
+        fig.add_trace(go.Scatter(
+            x=x_slice, y=y_slice,
+            mode='markers',
+            marker=dict(color='grey', line=dict(width=1, color='black')),
+            name='Data Points',
+            opacity=0.5
+        ))
+
+        # Add vertical quantile lines for X
+        for q, color, label in zip(
+            [x_slice.quantile(0.1), x_slice.quantile(0.5), x_slice.quantile(0.9)],
+            ['firebrick', 'blue', 'green'],
+            ['P10 X', 'P50 X', 'P90 X']
+        ):
+            fig.add_trace(go.Scatter(
+                x=[q, q], y=[y_slice.min(), y_slice.max()],
+                mode='lines',
+                line=dict(color=color, dash='dash'),
+                name=label
+            ))
+
+        # Add horizontal quantile lines for Y
+        for q, color, label in zip(
+            [y_slice.quantile(0.1), y_slice.quantile(0.5), y_slice.quantile(0.9)],
+            ['firebrick', 'blue', 'green'],
+            ['P10 Y', 'P50 Y', 'P90 Y']
+        ):
+            fig.add_trace(go.Scatter(
+                x=[x_slice.min(), x_slice.max()], y=[q, q],
+                mode='lines',
+                line=dict(color=color, dash='dash'),
+                name=label
+            ))
+
+        # Update layout
+        fig.update_layout(
+            title="Crossplot with P10/P50/P90 Lines",
+            xaxis_title=f'{x_selected_type}: {x_selected_property} @ {x_selected_date.strftime("%Y-%m-%d")}',
+            yaxis_title=f'{y_selected_type}: {y_selected_property} @ {y_selected_date.strftime("%Y-%m-%d")}',
+            height=plot_height * 100,
+            template="plotly_white",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)         
             
     with tab2:
         
@@ -1267,7 +1296,7 @@ elif selected == "Case selection":
 
         # ---- Show download button ----
         st.download_button(
-            label="📥 Download Yearly Profiles as Excel",
+            label="Download Yearly Profiles as Excel",
             data=excel_buffer,
             file_name="Yearly_Profiles.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
