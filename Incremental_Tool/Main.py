@@ -1594,8 +1594,7 @@ elif selected == "Waterfall":
         st.dataframe(box_data_project,use_container_width=True)           
         st.dataframe(box_data_incremental,use_container_width=True)           
         
-
-
+###########################################################################################################CASE SELECTION###########################################################################################################
 elif selected == "Case selection":
     
     # Retrieve base data from session state
@@ -1782,67 +1781,127 @@ elif selected == "Case selection":
             p50_case = p50_rankings.index[0]
             p90_case = p90_rankings.index[0]
             
-        with c3:
+
+
+    with c3:
+        fig = make_subplots(
+            rows=num_groups,
+            cols=2,
+            shared_xaxes=False,
+            specs=[[{}, {"secondary_y": True}] for _ in range(num_groups)],
+            subplot_titles=[f"{selected_identifiers[i]}: {select_source}" for i in range(num_groups) for _ in range(2)],
+            horizontal_spacing=0.15
+        )
+
+        for i in range(num_groups):
+            df = dfs[i]
+            df_cumprob = dfs_cumprob[i]
+
+            # Time series plot (left)
+            for col in df.columns:
+                fig.add_trace(go.Scatter(
+                    x=df.index,
+                    y=df[col],
+                    mode='lines',
+                    line=dict(color='grey', width=1),
+                    opacity=0.3,
+                    name=col if i == 0 else None,
+                    showlegend=False
+                ), row=i+1, col=1)
+
+            # Highlight P10/P50/P90
+            fig.add_trace(go.Scatter(x=df.index, y=df[p90_case], line=dict(color='firebrick', width=2), name="P90"), row=i+1, col=1)
+            fig.add_trace(go.Scatter(x=df.index, y=df[p50_case], line=dict(color='blue', width=2), name="P50"), row=i+1, col=1)
+            fig.add_trace(go.Scatter(x=df.index, y=df[p10_case], line=dict(color='green', width=2), name="P10"), row=i+1, col=1)
+            fig.add_vline(x=selected_dates_objects[i], line_color="black", line_dash="dash", row=i+1, col=1)
+
+            # Right: Histogram (secondary y) + cumulative probability (primary y)
+            fig.add_trace(go.Histogram(
+                x=df_cumprob["value"],
+                opacity=0.3,
+                marker=dict(color='lightgrey'),
+                name="Distribution",
+                showlegend=(i == 0)
+            ), row=i+1, col=2, secondary_y=True)
+
+            fig.add_trace(go.Scatter(
+                x=df_cumprob["value"],
+                y=df_cumprob["cum_prob"],
+                mode="markers",
+                marker=dict(color="lightblue", size=10),
+                name="Cumulative Prob" if i == 0 else None
+            ), row=i+1, col=2, secondary_y=False)
             
-            for i in range(num_groups):
-                
-                df = dfs[i]
-                df_cumprob = dfs_cumprob[i]
-                
-                if num_groups == 1:
-                    ax = axs[0]
-                else:
-                    ax = axs[i,0]
-                    
-                ax.plot(df,color='grey', alpha=0.5)    
-                ax.axvline(selected_dates_objects[i], color='black', linestyle='dashed', label="Selected Timeslice", zorder=3)
-                ax.plot(df[p90_case], color='firebrick', linestyle='solid', label=p90_case)
-                ax.plot(df[p50_case], color='blue', linestyle='solid', label=p50_case)
-                ax.plot(df[p10_case], color='green', linestyle='solid', label=p10_case)
-                ax.set_xlabel('Date')
-                ax.set_ylabel(selected_props[i])
-                ax.legend()
-                ax.set_title(selected_identifiers[i]+': '+select_source)
-                ax.grid()
-                
-                
-                if num_groups == 1:
-                    ax1 = axs[1]
-                else:
-                    ax1 = axs[i,1]
-                    
-                ax1.scatter(df_cumprob['value'], df_cumprob['cum_prob'], color='lightblue', alpha=0.9, label="Cumulative Probability")
-                ax1.axhline(0.9, color='firebrick', linestyle='dashdot')
-                ax1.axhline(0.5, color='blue', linestyle='dashdot')
-                ax1.axhline(0.1, color='green', linestyle='dashdot')
-                                
-                ax1.scatter(df_cumprob.loc[p90_case,'value'],df_cumprob.loc[p90_case,'cum_prob'], color='firebrick', s=150, label=p90_case, edgecolor='black', linewidth=1, marker='^')
-                ax1.scatter(df_cumprob.loc[p50_case,'value'],df_cumprob.loc[p50_case,'cum_prob'], color='blue', s=150, label=p50_case, edgecolor='black', linewidth=1, marker='^')
-                ax1.scatter(df_cumprob.loc[p10_case,'value'],df_cumprob.loc[p10_case,'cum_prob'], color='green', s=150, label=p10_case, edgecolor='black', linewidth=1, marker='^' )
-                
-                ax1.set_xlabel(selected_props[i] +' @ '+ selected_dates_strings[i])
-                ax1.set_ylabel("Cumulative Probability")
-                ax1.set_title(selected_identifiers[i]+': '+select_source)
-                #ax1.invert_yax1is()
-                ax1.grid(True)
-                ax1.legend()
-        
-            # Adjust layout
-            plt.tight_layout()
-            # Display in Streamlit
-            st.pyplot(fig, use_container_width=True)
-    
-    with tab2:
-        st.write('P10 rankings')
-        st.write(p10_rankings)
-        st.write('P50 rankings')
-        st.write(p50_rankings)
-        st.write('P90 rankings')
-        st.write(p90_rankings)    
-    
-        st.write('Base data')
-        st.dataframe(df_base)
-        st.write('Project data')
-        st.dataframe(df_project)        
-        st.write('Incremental data')
-        st.dataframe(df_incremental)
+          
+
+
+            # Horizontal quantile lines
+            for q, color in zip([0.1, 0.5, 0.9], ['green', 'blue', 'firebrick']):
+                fig.add_hline(y=q, line_color=color, line_dash="dot", row=i+1, col=2, secondary_y=False)
+
+            # Triangle markers for P10/P50/P90
+            for case, color in zip([p10_case, p50_case, p90_case], ['green', 'blue', 'firebrick']):
+                fig.add_trace(go.Scatter(
+                    x=[df_cumprob.loc[case, 'value']],
+                    y=[df_cumprob.loc[case, 'cum_prob']],
+                    mode='markers',
+                    marker=dict(color=color, size=20, symbol='triangle-up'),
+                    name=f"{case}" if i == 0 else None,
+                    showlegend=(i == 0)
+                ), row=i+1, col=2, secondary_y=False)
+
+            # Axis labels
+            fig.update_yaxes(title_text=selected_props[i], row=i+1, col=1)
+            fig.update_yaxes(title_text="Cumulative Prob", row=i+1, col=2, secondary_y=False)
+            fig.update_yaxes(title_text="Histogram", row=i+1, col=2, secondary_y=True)
+            fig.update_xaxes(title_text="Date", row=i+1, col=1)
+            fig.update_xaxes(title_text=f"{selected_props[i]} @ {selected_dates_strings[i]}", row=i+1, col=2)
+
+        # Layout
+        fig.update_layout(
+            height=plot_height * 200 * num_groups,
+            title="Case Selection - Ensemble Profiles",
+            showlegend=True,
+            template="plotly_white"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        import pandas as pd
+
+        # Store per-case yearly profiles
+        p10_profiles = {}
+        p50_profiles = {}
+        p90_profiles = {}
+
+        # Loop over each selected property and its dataframe
+        for i in range(num_groups):
+            df = dfs[i]  # time series for that property
+
+            # Ensure datetime index
+            df.index = pd.to_datetime(df.index)
+            yearly = df.resample('YE').mean().copy()
+            yearly.index = pd.to_datetime([f"01-01-{y.year}" for y in yearly.index])
+
+            # Extract profiles
+            p10_profiles[selected_props[i]] = yearly[p10_case]
+            p50_profiles[selected_props[i]] = yearly[p50_case]
+            p90_profiles[selected_props[i]] = yearly[p90_case]
+
+        # Convert to DataFrames
+        df_p10_export = pd.DataFrame(p10_profiles)
+        df_p50_export = pd.DataFrame(p50_profiles)
+        df_p90_export = pd.DataFrame(p90_profiles)
+
+        # Write to Excel
+        from pathlib import Path
+        output_path = Path("P10_P50_P90_Yearly_Profiles.xlsx")
+        with pd.ExcelWriter(output_path, engine="xlsxwriter") as writer:
+            df_p10_export.to_excel(writer, sheet_name="P10_Yearly")
+            df_p50_export.to_excel(writer, sheet_name="P50_Yearly")
+            df_p90_export.to_excel(writer, sheet_name="P90_Yearly")
+
+        # Show download button in Streamlit
+        with open(output_path, "rb") as f:
+            st.download_button("Download P10/P50/P90 Profiles (Excel)", f, file_name=output_path.name)
+

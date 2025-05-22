@@ -1066,7 +1066,7 @@ elif selected == "Case selection":
     props = data_dict_base['Metadata']['Properties']
     dates = data_dict_base['Metadata']['Dates']
     wells = list(data_dict_base['Metadata']['Wells'])
-
+    dict_incremental_mapping = st.session_state['dict_incremental_mapping']
     with st.sidebar.expander("Plot settings"):
         plot_height = st.number_input("Plot height", 1, 16, 4)
     num_groups = st.sidebar.number_input('Number of properties:', 1, 10, 1)
