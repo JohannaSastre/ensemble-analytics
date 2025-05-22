@@ -667,7 +667,7 @@ if selected == "Sales Conversions":
             
     
 
- #######################################################################ANALYSIS#####################################################################           
+########################################################################ANALYSIS#####################################################################           
       
 elif selected == "Analysis":
 
@@ -1340,7 +1340,7 @@ elif selected == "Boxplots":
         st.dataframe(box_data_project,use_container_width=True)           
         st.dataframe(box_data_incremental,use_container_width=True)           
         
-
+###########################################################################Waterfall#####################################################################################
      
 elif selected == "Waterfall":
     
@@ -1563,36 +1563,48 @@ elif selected == "Waterfall":
 
         
 ############################
-    with c3:
-        fig,ax = plt.subplots(figsize=(18,plot_height))
-        ax.bar(df_waterfall["Category"], 
-               df_waterfall["Value"], bottom=df_waterfall["Bottom"],
-               color=df_waterfall["Color"], edgecolor="black")
-        
-        for i, value in enumerate(df_waterfall.index):
-            height = df_waterfall['Total'][i]
-            value = df_waterfall['Value'][i]
-            ax.text(i, height*(1+ylim_setting/50), f"{value:.3e}", ha="center", va="bottom", rotation = 45)
+   
+    import plotly.graph_objects as go
 
-        # Formatting
-        ax.grid(axis="y", linestyle="--", alpha=0.7)
-        plt.xticks(rotation=30)
+    with c3:
+        fig = go.Figure()
+
+        # Add waterfall bars
+        fig.add_trace(go.Bar(
+            x=df_waterfall["Category"],
+            y=df_waterfall["Value"],
+            base=df_waterfall["Bottom"],
+            marker_color=df_waterfall["Color"],
+            marker_line=dict(color='black', width=1),
+            text=[f"{v:.3e}" for v in df_waterfall["Value"]],
+            textposition='outside',
+            textfont=dict(size=16),
+            name="Incremental Values"
+        ))
+
+        # Adjust layout
+        fig.update_layout(
+             
+            yaxis=dict(
+                title=f'{selected_property} @ {selected_date.strftime("%Y-%m-%d")}',
+                range=[
+                    df_waterfall["Total"].min() * (1 - ylim_setting),
+                    df_waterfall["Total"][1:-1].max() * (1 + ylim_setting)
+                ]
+            ),
+            xaxis=dict(
+                title=selected_category,
+                tickangle=30
+            ),
+            title="Waterfall chart for MEAN Incremental values",
+            template="plotly_white",
+            showlegend=False,
+            height=plot_height * 100
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
           
-        ax.set_ylabel(f'{selected_property} @ {selected_date.strftime("%Y-%m-%d")}')
-        ax.set_xlabel(selected_category)
-        ax.set_ylim(df_waterfall["Total"].min()*(1-ylim_setting),df_waterfall["Total"][1:-1].max()*(1+ylim_setting))
-        ax.grid()
-        ax.legend()
-        plt.title('Waterfall chart for MEAN Incremental values')
-        
-        st.pyplot(fig, use_container_width=True)
-    
-    
-    with tab2:            
-        st.dataframe(df_waterfall,use_container_width=True,height=700)          
-        st.dataframe(box_data_base,use_container_width=True)           
-        st.dataframe(box_data_project,use_container_width=True)           
-        st.dataframe(box_data_incremental,use_container_width=True)           
         
 ###########################################################################################################CASE SELECTION###########################################################################################################
 elif selected == "Case selection":
@@ -1868,6 +1880,7 @@ elif selected == "Case selection":
         st.plotly_chart(fig, use_container_width=True)
 
         import pandas as pd
+        from io import BytesIO
 
         # Store per-case yearly profiles
         p10_profiles = {}
@@ -1876,14 +1889,16 @@ elif selected == "Case selection":
 
         # Loop over each selected property and its dataframe
         for i in range(num_groups):
-            df = dfs[i]  # time series for that property
+            df = dfs[i]  # Time series for that property
 
             # Ensure datetime index
             df.index = pd.to_datetime(df.index)
+
+            # Resample to yearly (mean) and format index as 01-01-Y
             yearly = df.resample('YE').mean().copy()
             yearly.index = pd.to_datetime([f"01-01-{y.year}" for y in yearly.index])
 
-            # Extract profiles
+            # Extract profiles for the P10, P50, and P90 cases
             p10_profiles[selected_props[i]] = yearly[p10_case]
             p50_profiles[selected_props[i]] = yearly[p50_case]
             p90_profiles[selected_props[i]] = yearly[p90_case]
@@ -1893,15 +1908,18 @@ elif selected == "Case selection":
         df_p50_export = pd.DataFrame(p50_profiles)
         df_p90_export = pd.DataFrame(p90_profiles)
 
-        # Write to Excel
-        from pathlib import Path
-        output_path = Path("P10_P50_P90_Yearly_Profiles.xlsx")
-        with pd.ExcelWriter(output_path, engine="xlsxwriter") as writer:
+        # Write to Excel in memory
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             df_p10_export.to_excel(writer, sheet_name="P10_Yearly")
             df_p50_export.to_excel(writer, sheet_name="P50_Yearly")
             df_p90_export.to_excel(writer, sheet_name="P90_Yearly")
+        output.seek(0)
 
         # Show download button in Streamlit
-        with open(output_path, "rb") as f:
-            st.download_button("Download P10/P50/P90 Profiles (Excel)", f, file_name=output_path.name)
-
+        st.download_button(
+            label="Download P10/P50/P90 Profiles (Excel)",
+            data=output,
+            file_name="P10_P50_P90_Yearly_Profiles.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
