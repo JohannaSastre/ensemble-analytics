@@ -22,6 +22,7 @@ from matplotlib.gridspec import GridSpec
 
 import streamlit as st
 from streamlit_option_menu import option_menu
+import plotly.graph_objects as go
 
 #########################for plotting###################
 import plotly.graph_objects as go
@@ -1005,29 +1006,88 @@ elif selected == "Crossplot":
             
             
         ########### plot data
-        with c3:
-            fig,ax = plt.subplots(figsize=(18,plot_height))
-            
-            
-            ax.scatter(x_slice,y_slice,color = 'grey',alpha=0.5, edgecolor = 'black')
-                 
-            
-            ax.axvline(x_slice.quantile(0.9), color='green', linestyle='dashdot')
-            ax.axvline(x_slice.quantile(0.5), color='blue', linestyle='dashdot')
-            ax.axvline(x_slice.quantile(0.1), color='firebrick', linestyle='dashdot')
-            
-            ax.axhline(y_slice.quantile(0.9), color='green', linestyle='dashdot')
-            ax.axhline(y_slice.quantile(0.5), color='blue', linestyle='dashdot')
-            ax.axhline(y_slice.quantile(0.1), color='firebrick', linestyle='dashdot')
+        # ...existing code...
+    with c3:
         
-            ax.set_ylabel(f'{y_selected_type}: {y_selected_property} @ {y_selected_date.strftime("%Y-%m-%d")}')
-            ax.set_xlabel(f'{x_selected_type}: {x_selected_property} @ {x_selected_date.strftime("%Y-%m-%d")}')
+
+        fig = go.Figure()
+
+        # Scatter plot
+        fig.add_trace(go.Scatter(
+            x=x_slice,
+            y=y_slice,
+            mode='markers',
+            marker=dict(
+                color='grey',
+                line=dict(width=1, color='black'),
+                size=12  # <-- Increase this value for larger markers
+            ),
+            name='Data Points',
+            opacity=0.5
+        ))
+
+        # Vertical quantile lines for X
+        for q, color, label in zip(
+            [x_slice.quantile(0.1), x_slice.quantile(0.5), x_slice.quantile(0.9)],
+            ['firebrick', 'blue', 'green'],
+            ['P10 X', 'P50 X', 'P90 X']
+        ):
+            fig.add_trace(go.Scatter(
+                x=[q, q], y=[y_slice.min(), y_slice.max()],
+                mode='lines',
+                line=dict(color=color, dash='dash'),
+                name=label
+            ))
+
+        # Horizontal quantile lines for Y
+        for q, color, label in zip(
+            [y_slice.quantile(0.1), y_slice.quantile(0.5), y_slice.quantile(0.9)],
+            ['firebrick', 'blue', 'green'],
+            ['P10 Y', 'P50 Y', 'P90 Y']
+        ):
+            fig.add_trace(go.Scatter(
+                x=[x_slice.min(), x_slice.max()], y=[q, q],
+                mode='lines',
+                line=dict(color=color, dash='dash'),
+                name=label
+            ))
+
+        # Axis labels and layout
+        fig.update_layout(
+            title=dict(
+                text="Crossplot",
+                font=dict(size=28)  # Increased title font size
+            ),
+            xaxis=dict(
+                title=dict(
+                    text=f'{x_selected_type}: {x_selected_property} @ {x_selected_date.strftime("%Y-%m-%d")}',
+                    font=dict(size=22)  # Increased x-axis label font size
+                ),
+                zeroline=True,
+                tickfont=dict(size=18)  # Optional: increase tick label size
+            ),
+            yaxis=dict(
+                title=dict(
+                    text=f'{y_selected_type}: {y_selected_property} @ {y_selected_date.strftime("%Y-%m-%d")}',
+                    font=dict(size=22)  # Increased y-axis label font size
+                ),
+                zeroline=True,
+                tickfont=dict(size=18)  # Optional: increase tick label size
+            ),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+                font=dict(size=16)  # Optional: increase legend font size
+            ),
+            template="plotly_white",
+            height=plot_height * 150
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
                 
-            ax.grid()
-            ax.legend()
-          
-            st.pyplot(fig,use_container_width=True)           
-            
     with tab2:
         
         st.write(f'X-Axis: {x_selected_type}: {x_selected_property} @ {x_selected_date.strftime("%Y-%m-%d")}')
@@ -1565,47 +1625,51 @@ elif selected == "Waterfall":
 ############################
    
     import plotly.graph_objects as go
-
     with c3:
-        fig = go.Figure()
+            fig = go.Figure()
 
-        # Add waterfall bars
-        fig.add_trace(go.Bar(
-            x=df_waterfall["Category"],
-            y=df_waterfall["Value"],
-            base=df_waterfall["Bottom"],
-            marker_color=df_waterfall["Color"],
-            marker_line=dict(color='black', width=1),
-            text=[f"{v:.3e}" for v in df_waterfall["Value"]],
-            textposition='outside',
-            textfont=dict(size=16),
-            name="Incremental Values"
-        ))
+            # Bar trace for waterfall
+            fig.add_trace(go.Bar(
+                x=df_waterfall["Category"],
+                y=df_waterfall["Value"],
+                base=df_waterfall["Bottom"],
+                marker_color=df_waterfall["Color"],
+                marker_line=dict(color='black', width=1),
+                text=[f"{v:.3e}" for v in df_waterfall["Value"]],
+                textposition='outside',
+                textfont=dict(size=18),  # <-- Larger font for labels above bars
+                name="Incremental Values"
+            ))
 
-        # Adjust layout
-        fig.update_layout(
-             
-            yaxis=dict(
-                title=f'{selected_property} @ {selected_date.strftime("%Y-%m-%d")}',
-                range=[
-                    df_waterfall["Total"].min() * (1 - ylim_setting),
-                    df_waterfall["Total"][1:-1].max() * (1 + ylim_setting)
-                ]
-            ),
-            xaxis=dict(
-                title=selected_category,
-                tickangle=30
-            ),
-            title="Waterfall chart for MEAN Incremental values",
-            template="plotly_white",
-            showlegend=False,
-            height=plot_height * 100
-        )
+            # Update axes and layout with larger font sizes
+            fig.update_layout(
+                title=dict(text="Waterfall Chart for MEAN Incremental Values",font=dict(size=25)),
+                xaxis=dict(
+                    title=dict(text=selected_category, font=dict(size=20)),
+                    tickfont=dict(size=16),
+                    tickangle=30
+                ),
+                yaxis=dict(
+                    title=dict(text=f"{selected_property} @ {selected_date.strftime('%Y-%m-%d')}", font=dict(size=20)),
+                    tickfont=dict(size=16),
+                ),
+                font=dict(size=18),
+                margin=dict(t=50, l=50, r=50, b=100),
+                template="plotly_white",
+                height=plot_height * 100
+            )
 
-        st.plotly_chart(fig, use_container_width=True)
 
-          
-        
+            # Optional: Adjust y-axis range if needed
+            fig.update_yaxes(range=[
+                df_waterfall["Total"].min() * (1 - ylim_setting),
+                df_waterfall["Total"][1:-1].max() * (1 + ylim_setting)
+            ])
+
+            st.plotly_chart(fig, use_container_width=True)
+
+            
+            
 ###########################################################################################################CASE SELECTION###########################################################################################################
 elif selected == "Case selection":
     
